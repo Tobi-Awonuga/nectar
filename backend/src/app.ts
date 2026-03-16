@@ -7,6 +7,8 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import path from 'path'
 import { env } from './config/env'
 import { db, pool } from './db'
+import router from './routes'
+import { errorHandler } from './middleware/error.middleware'
 
 const app = express()
 
@@ -23,6 +25,10 @@ app.get('/api/health', (_req, res) => {
     timestamp: new Date().toISOString(),
   })
 })
+
+app.use('/api', router)
+
+app.use(errorHandler)
 
 async function bootstrap() {
   console.log('Running database migrations...')
