@@ -1,0 +1,15 @@
+# Development overrides — merge with docker-compose.yml
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# What this adds:
+#   - postgres port exposed on host → DBeaver connects to localhost:5432
+#   - backend port exposed on host → direct API testing via localhost:3000
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"   # exposed for DBeaver and local drizzle-kit commands
+
+  backend:
+    ports:
+      - "3000:3000"   # exposed for direct API testing (Postman, curl, etc.)
