@@ -127,9 +127,6 @@ export default function WorkflowDetailPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">How This Workflow Works</CardTitle>
-            <CardDescription>
-              End users should understand the process before they submit a request.
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="relative pl-6 border-l-2 border-border space-y-0">
@@ -239,37 +236,6 @@ export default function WorkflowDetailPage() {
             </Card>
           ) : null}
 
-          {/* Submission Guidance */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Submission Guidance</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {blueprint.guidance.map((tip) => (
-                <div
-                  key={tip}
-                  className="rounded-xl border border-border bg-muted/25 px-4 py-3 text-sm text-muted-foreground"
-                >
-                  {tip}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Process Outcome */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Process Outcome</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {blueprint.outcomes.map((outcome) => (
-                <div key={outcome} className="flex items-start gap-3">
-                  <ArrowRight size={15} className="mt-0.5 shrink-0 text-primary" />
-                  <p className="text-sm text-muted-foreground">{outcome}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
         </div>
       </div>
 
