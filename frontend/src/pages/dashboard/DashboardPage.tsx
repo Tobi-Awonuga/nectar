@@ -1,14 +1,19 @@
+import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthContext } from '@/context/AuthContext'
 import {
   GitBranch,
-  CheckSquare,
-  ShieldCheck,
-  TrendingUp,
+  ClipboardList,
+  Activity,
+  CheckCircle2,
   Clock,
   ArrowUpRight,
   Circle,
+  ShieldCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { workflowsService } from '@/services/workflows.service'
+import { Badge } from '@/components/ui/badge'
 
 function getGreeting() {
   const h = new Date().getHours()
@@ -17,60 +22,68 @@ function getGreeting() {
   return 'Good evening'
 }
 
-const stats = [
-  {
-    label: 'Active Workflows',
-    value: '2',
-    change: '+1 this week',
-    up: true,
-    icon: GitBranch,
-    color: 'text-primary',
-    bg: 'bg-primary/8',
-  },
-  {
-    label: 'My Tasks',
-    value: '0',
-    change: 'None assigned',
-    up: null,
-    icon: CheckSquare,
-    color: 'text-success',
-    bg: 'bg-success/8',
-  },
-  {
-    label: 'Pending Approvals',
-    value: '0',
-    change: 'All clear',
-    up: null,
-    icon: ShieldCheck,
-    color: 'text-warning',
-    bg: 'bg-warning/8',
-  },
-  {
-    label: 'Completed This Week',
-    value: '0',
-    change: 'No activity yet',
-    up: null,
-    icon: TrendingUp,
-    color: 'text-destructive',
-    bg: 'bg-destructive/8',
-  },
-]
-
-const recentActivity: { title: string; desc: string; time: string; type: 'created' | 'approved' | 'submitted' | 'system' }[] = [
-  { title: 'Purchase Request workflow seeded', desc: 'System — 5 states, 5 transitions', time: 'Today', type: 'system' },
-  { title: 'IT Access Request workflow seeded', desc: 'System — 6 states, 6 transitions', time: 'Today', type: 'system' },
-]
-
-const activityDot: Record<string, string> = {
-  created: 'bg-primary',
-  approved: 'bg-success',
-  submitted: 'bg-warning',
-  system: 'bg-muted-foreground',
-}
-
 export default function DashboardPage() {
   const { user } = useAuthContext()
   const firstName = user?.name?.split(' ')[0] ?? 'there'
+
+  const workflowsQuery = useQuery({
+    queryKey: ['workflows'],
+    queryFn: workflowsService.getWorkflows,
+  })
+
+  const tasksQuery = useQuery({
+    queryKey: ['tasks'],
+    queryFn: () => workflowsService.getInstances(),
+  })
+
+  const workflows = workflowsQuery.data ?? []
+  const tasks = tasksQuery.data ?? []
+
+  const workflowCount = workflows.length
+  const requestCount = tasks.length
+  const inProgressCount = tasks.filter((t) => !t.completedAt).length
+  const completedCount = tasks.filter((t) => t.completedAt != null).length
+
+  const workflowById = Object.fromEntries(workflows.map((w) => [w.id, w]))
+
+  const recentTasks = [...tasks]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5)
+
+  const stats = [
+    {
+      label: 'Workflow Templates',
+      value: workflowsQuery.isLoading ? '…' : String(workflowCount),
+      icon: GitBranch,
+      color: 'text-primary',
+      bg: 'bg-primary/8',
+      loading: workflowsQuery.isLoading,
+    },
+    {
+      label: 'My Requests',
+      value: tasksQuery.isLoading ? '…' : String(requestCount),
+      icon: ClipboardList,
+      color: 'text-primary',
+      bg: 'bg-primary/8',
+      loading: tasksQuery.isLoading,
+    },
+    {
+      label: 'In Progress',
+      value: tasksQuery.isLoading ? '…' : String(inProgressCount),
+      icon: Activity,
+      color: 'text-warning',
+      bg: 'bg-warning/8',
+      loading: tasksQuery.isLoading,
+    },
+    {
+      label: 'Completed',
+      value: tasksQuery.isLoading ? '…' : String(completedCount),
+      icon: CheckCircle2,
+      color: 'text-success',
+      bg: 'bg-success/8',
+      loading: tasksQuery.isLoading,
+    },
+  ]
 
   return (
     <div className="space-y-8">
@@ -107,19 +120,11 @@ export default function DashboardPage() {
               />
             </div>
             <div className="mt-4">
-              <p className="text-2xl font-bold tabular-nums text-foreground">{s.value}</p>
+              <p className={cn('text-2xl font-bold tabular-nums text-foreground', s.loading && 'opacity-40')}>
+                {s.value}
+              </p>
               <p className="mt-0.5 text-[13px] font-medium text-muted-foreground">{s.label}</p>
             </div>
-            <p
-              className={cn(
-                'mt-3 text-[12px] font-medium',
-                s.up === true && 'text-success',
-                s.up === false && 'text-destructive',
-                s.up === null && 'text-muted-foreground',
-              )}
-            >
-              {s.change}
-            </p>
           </div>
         ))}
       </div>
@@ -130,25 +135,42 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 rounded-xl border border-border bg-card shadow-sm shadow-black/[0.03]">
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
             <h3 className="text-sm font-semibold text-foreground">Recent Activity</h3>
-            <button className="text-xs font-medium text-primary hover:underline">View all</button>
+            <Link to="/tasks" className="text-xs font-medium text-primary hover:underline">
+              View all
+            </Link>
           </div>
           <div className="divide-y divide-border">
-            {recentActivity.map((a, i) => (
-              <div key={i} className="flex items-start gap-3 px-6 py-4">
-                <div className="mt-1.5 shrink-0">
-                  <Circle size={7} className={cn('fill-current', activityDot[a.type])} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-medium text-foreground">{a.title}</p>
-                  <p className="text-[12px] text-muted-foreground">{a.desc}</p>
-                </div>
-                <span className="shrink-0 text-[11px] text-muted-foreground">{a.time}</span>
-              </div>
-            ))}
-            {recentActivity.length === 0 && (
+            {tasksQuery.isLoading ? (
+              <div className="px-6 py-8 text-center text-sm text-muted-foreground">Loading activity…</div>
+            ) : recentTasks.length === 0 ? (
               <div className="px-6 py-8 text-center text-sm text-muted-foreground">
-                No activity yet. Start by creating a workflow instance.
+                No activity yet — start by creating a request.
               </div>
+            ) : (
+              recentTasks.map((task) => {
+                const workflowName = workflowById[task.workflowId]?.name ?? 'Workflow'
+                const dateStr = new Date(task.createdAt).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                })
+                return (
+                  <div key={task.id} className="flex items-start gap-3 px-6 py-4">
+                    <div className="mt-1.5 shrink-0">
+                      <Circle size={7} className="fill-current text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-medium text-foreground">{task.title}</p>
+                      <p className="text-[12px] text-muted-foreground">{workflowName}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Badge variant="outline" className="text-[10px] font-medium px-1.5 py-0">
+                        Created
+                      </Badge>
+                      <span className="text-[11px] text-muted-foreground">{dateStr}</span>
+                    </div>
+                  </div>
+                )
+              })
             )}
           </div>
         </div>
@@ -160,19 +182,19 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-2 p-4">
             {[
-              { label: 'New Purchase Request', icon: GitBranch, href: '/workflows' },
-              { label: 'New IT Access Request', icon: GitBranch, href: '/workflows' },
-              { label: 'View My Tasks', icon: CheckSquare, href: '/tasks' },
+              { label: 'Browse Workflows', icon: GitBranch, href: '/workflows' },
+              { label: 'View My Requests', icon: ClipboardList, href: '/tasks' },
               { label: 'Pending Approvals', icon: ShieldCheck, href: '/approvals' },
+              { label: 'In Progress Work', icon: Activity, href: '/tasks' },
             ].map((action) => (
-              <a
+              <Link
                 key={action.label}
-                href={action.href}
+                to={action.href}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-accent"
               >
                 <action.icon size={15} className="text-primary" />
                 {action.label}
-              </a>
+              </Link>
             ))}
           </div>
         </div>
