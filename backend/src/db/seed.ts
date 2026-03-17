@@ -90,10 +90,12 @@ async function seed() {
       { name: 'task:read', description: 'View tasks' },
       { name: 'task:update', description: 'Update tasks' },
       { name: 'task:assign', description: 'Assign tasks' },
-      { name: 'approval:approve', description: 'Approve requests' },
-      { name: 'approval:reject', description: 'Reject requests' },
+      { name: 'approvals:read', description: 'View pending approvals' },
+      { name: 'approvals:action', description: 'Approve or reject requests' },
       { name: 'audit:read', description: 'View audit logs' },
-      { name: 'admin:users', description: 'Manage users' },
+      { name: 'users:read', description: 'View users' },
+      { name: 'users:write', description: 'Edit users' },
+      { name: 'users:delete', description: 'Delete users' },
       { name: 'admin:roles', description: 'Manage roles' },
     ]
 
@@ -123,8 +125,8 @@ async function seed() {
       'task:read',
       'task:update',
       'task:assign',
-      'approval:approve',
-      'approval:reject',
+      'approvals:read',
+      'approvals:action',
       'audit:read',
     ]
     const employeePerms = ['workflow:read', 'task:read', 'task:update']
