@@ -125,8 +125,6 @@ export default function WorkflowsPage() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {filtered.map((workflow) => {
             const blueprint = getWorkflowBlueprint(workflow)
-            const stateCount = workflow.states?.length ?? 0
-            const transitionCount = workflow.transitions?.length ?? 0
 
             return (
               <div
@@ -161,27 +159,8 @@ export default function WorkflowsPage() {
                   </div>
                 )}
 
-                {/* State flow */}
-                {workflow.states && workflow.states.length > 0 && (
-                  <div className="mt-4 flex items-center gap-1 overflow-x-auto">
-                    {workflow.states.map((state, idx) => (
-                      <div key={state.id} className="flex items-center gap-1 shrink-0">
-                        <span className="rounded bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground whitespace-nowrap">
-                          {state.label}
-                        </span>
-                        {idx < workflow.states!.length - 1 && (
-                          <ArrowRight size={10} className="text-muted-foreground/40 shrink-0" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
                 {/* Footer */}
-                <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
-                  <span className="text-[12px] text-muted-foreground">
-                    {stateCount} states · {transitionCount} transitions
-                  </span>
+                <div className="mt-4 flex items-center justify-end border-t border-border pt-4">
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
