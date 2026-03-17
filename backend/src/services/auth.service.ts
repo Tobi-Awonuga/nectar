@@ -57,6 +57,24 @@ async function upsertUser(data: {
       .set({ email: data.email, name: data.name, updatedAt: new Date() })
       .where(eq(users.id, existing[0].id))
       .returning()
+
+    // If the user somehow has no roles assigned, auto-assign Employee so they can access the app
+    try {
+      const existingRoles = await db.select().from(userRoles).where(eq(userRoles.userId, updated.id))
+      if (existingRoles.length === 0) {
+        const [employeeRole] = await db
+          .select({ id: roles.id })
+          .from(roles)
+          .where(eq(roles.name, 'Employee'))
+          .limit(1)
+        if (employeeRole) {
+          await db.insert(userRoles).values({ userId: updated.id, roleId: employeeRole.id }).onConflictDoNothing()
+        }
+      }
+    } catch {
+      // Non-fatal: role assignment failure must not block login
+    }
+
     return { user: updated, isNew: false }
   }
 
