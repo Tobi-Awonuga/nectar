@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -179,9 +178,6 @@ export function StartWorkflowDialog({
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-hidden p-0">
         <DialogHeader className="border-b border-border bg-muted/20 px-6 py-5">
           <DialogTitle>Create New Request</DialogTitle>
-          <DialogDescription className="max-w-2xl leading-6">
-            {workflowName ? blueprint.summary : 'Choose a department, then select the workflow that best fits the request.'}
-          </DialogDescription>
         </DialogHeader>
 
         <div className="max-h-[calc(90vh-146px)] overflow-y-auto px-6 py-5">
@@ -234,95 +230,51 @@ export function StartWorkflowDialog({
 
             {workflowName ? (
               <>
-                <div className="rounded-2xl border border-border bg-muted/20 p-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{blueprint.category}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{blueprint.impact}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {blueprint.departments.slice(0, 3).map((departmentLabel) => (
-                        <span
-                          key={departmentLabel}
-                          className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
-                        >
-                          {departmentLabel}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="request-title">Title</Label>
+                  <Input
+                    id="request-title"
+                    placeholder="Summarize the issue"
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                  />
                 </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Request</p>
-                    <p className="text-xs text-muted-foreground">Keep this short and operational.</p>
-                  </div>
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="request-title">Request Summary</Label>
-                      <Input
-                        id="request-title"
-                        placeholder="Summarize the issue or request"
-                        value={title}
-                        onChange={(event) => setTitle(event.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="request-description">Context</Label>
-                      <Textarea
-                        id="request-description"
-                        placeholder="Add the minimum context a reviewer needs to act."
-                        value={description}
-                        onChange={(event) => setDescription(event.target.value)}
-                      />
-                    </div>
-                  </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="request-description">
+                    Context{' '}
+                    <span className="text-muted-foreground font-normal">(optional)</span>
+                  </Label>
+                  <Textarea
+                    id="request-description"
+                    placeholder="Add the minimum context a reviewer needs to act."
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                  />
                 </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Key Details</p>
-                    <p className="text-xs text-muted-foreground">Only the fields this workflow actually needs.</p>
-                  </div>
+                {blueprint.fields.length > 0 ? (
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     {blueprint.fields.map((field) => renderWorkflowField(field))}
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="priority">Priority</Label>
-                    <Select value={priority} onValueChange={(value) => setPriority(value as Priority)}>
-                      <SelectTrigger id="priority">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="rounded-xl border border-border bg-muted/20 px-4 py-3 text-xs leading-5 text-muted-foreground">
-                    {blueprint.guidance[0]}
-                  </div>
-                </div>
-
-                {!isWorkflowAvailable ? (
-                  <div className="rounded-xl border border-border bg-muted/35 px-4 py-3 text-xs text-muted-foreground">
-                    This workflow is part of the system catalog, but it is not yet available from the backend in this environment.
-                  </div>
                 ) : null}
+
+                <div className="space-y-2">
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select value={priority} onValueChange={(value) => setPriority(value as Priority)}>
+                    <SelectTrigger id="priority">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="critical">Critical</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </>
-            ) : (
-              <div className="rounded-xl border border-border bg-muted/25 px-4 py-4 text-sm text-muted-foreground">
-                Choose a workflow template first. Nectar will then show only the fields needed for that process.
-              </div>
-            )}
+            ) : null}
 
             {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
           </div>
@@ -332,8 +284,8 @@ export function StartWorkflowDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={createMutation.isPending}>
             Cancel
           </Button>
-          <Button onClick={submit} disabled={!workflowName || !selectedWorkflow || createMutation.isPending}>
-            {createMutation.isPending ? 'Creating...' : 'Start Workflow'}
+          <Button onClick={submit} disabled={!workflowName || !isWorkflowAvailable || createMutation.isPending}>
+            {createMutation.isPending ? 'Creating...' : 'Submit Request'}
           </Button>
         </DialogFooter>
       </DialogContent>
