@@ -1,7 +1,7 @@
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull } from 'drizzle-orm'
 import { db } from '../db'
-import { users } from '../db/schema'
-import type { User } from '../db/schema'
+import { roles, userRoles, users } from '../db/schema'
+import type { Role, User } from '../db/schema'
 
 export async function getAll(_query: Record<string, unknown>): Promise<User[]> {
   return db
@@ -45,4 +45,31 @@ export async function remove(id: string): Promise<void> {
     .update(users)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
     .where(and(eq(users.id, id), isNull(users.deletedAt)))
+}
+
+export async function getUserRoles(userId: string): Promise<Role[]> {
+  const rows = await db
+    .select({ role: roles })
+    .from(userRoles)
+    .innerJoin(roles, eq(roles.id, userRoles.roleId))
+    .where(eq(userRoles.userId, userId))
+
+  return rows.map((r) => r.role)
+}
+
+export async function getAllRoles(): Promise<Role[]> {
+  return db.select().from(roles).orderBy(asc(roles.name))
+}
+
+export async function assignRole(userId: string, roleId: string): Promise<void> {
+  await db
+    .insert(userRoles)
+    .values({ userId, roleId })
+    .onConflictDoNothing()
+}
+
+export async function removeRole(userId: string, roleId: string): Promise<void> {
+  await db
+    .delete(userRoles)
+    .where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, roleId)))
 }

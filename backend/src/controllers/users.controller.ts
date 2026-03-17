@@ -44,3 +44,44 @@ export async function deleteUser(req: Request, res: Response, next: NextFunction
     next(err)
   }
 }
+
+export async function getUserRoles(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await usersService.getUserRoles(req.params.id)
+    res.status(200).json({ data: result })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getAllRoles(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await usersService.getAllRoles()
+    res.status(200).json({ data: result })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function assignRole(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { roleId } = req.body as { roleId: string }
+    if (!roleId) {
+      res.status(400).json({ error: 'roleId is required' })
+      return
+    }
+    await usersService.assignRole(req.params.id, roleId)
+    res.status(204).send()
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function removeRole(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    await usersService.removeRole(req.params.id, req.params.roleId)
+    res.status(204).send()
+  } catch (err) {
+    next(err)
+  }
+}
