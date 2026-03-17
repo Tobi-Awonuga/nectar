@@ -1,7 +1,10 @@
-import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, CalendarClock, ClipboardList } from 'lucide-react'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { ClipboardList, Plus, ChevronRight } from 'lucide-react'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { StartWorkflowDialog } from '@/components/workflows/StartWorkflowDialog'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { workflowsService } from '@/services/workflows.service'
 
@@ -9,10 +12,30 @@ function formatMetadata(metadata?: Record<string, unknown>): Array<[string, stri
   if (!metadata) return []
   return Object.entries(metadata)
     .filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim().length > 0)
-    .slice(0, 3)
+    .slice(0, 4)
+}
+
+function formatKey(key: string): string {
+  return key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase()).trim()
+}
+
+function getTransitionVariant(actionName: string): 'default' | 'outline' {
+  const lower = actionName.toLowerCase()
+  if (lower.includes('approve') || lower.includes('complete') || lower.includes('submit')) {
+    return 'default'
+  }
+  return 'outline'
+}
+
+function isDestructiveAction(actionName: string): boolean {
+  const lower = actionName.toLowerCase()
+  return lower.includes('reject') || lower.includes('cancel') || lower.includes('close')
 }
 
 export default function TasksPage() {
+  const [startDialogOpen, setStartDialogOpen] = useState(false)
+  const queryClient = useQueryClient()
+
   const workflowsQuery = useQuery({
     queryKey: ['workflows'],
     queryFn: workflowsService.getWorkflows,
@@ -21,6 +44,14 @@ export default function TasksPage() {
   const tasksQuery = useQuery({
     queryKey: ['tasks'],
     queryFn: () => workflowsService.getInstances(),
+  })
+
+  const transitionMutation = useMutation({
+    mutationFn: ({ instanceId, actionName }: { instanceId: string; actionName: string }) =>
+      workflowsService.transition(instanceId, actionName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    },
   })
 
   if (workflowsQuery.isLoading || tasksQuery.isLoading) {
@@ -48,26 +79,39 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-6">
+      {/* Page header */}
       <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <ClipboardList size={22} />
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <ClipboardList size={22} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-semibold text-foreground">My Requests</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                Track the operational work you started. Each request shows its current state, the workflow it
+                belongs to, and the available actions you can take.
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-semibold text-foreground">My Requests</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              This is where users track the operational work they started. Each request keeps its current state,
-              the workflow it belongs to, and the important submission context that approvers need.
-            </p>
-          </div>
+          <Button
+            onClick={() => setStartDialogOpen(true)}
+            className="shrink-0"
+          >
+            <Plus size={16} />
+            Start New Request
+          </Button>
         </div>
       </section>
 
+      {/* Task list */}
       {tasks.length === 0 ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">No active requests</CardTitle>
-            <CardDescription>Once a workflow is started, it will appear here with its current status.</CardDescription>
+            <CardDescription>
+              Once a workflow is started, it will appear here with its current status.
+            </CardDescription>
           </CardHeader>
         </Card>
       ) : (
@@ -76,11 +120,14 @@ export default function TasksPage() {
             const workflow = workflowById[task.workflowId]
             const currentState = workflow?.states?.find((state) => state.id === task.currentStateId)
             const metadata = formatMetadata(task.metadata)
+            const availableTransitions =
+              workflow?.transitions?.filter((t) => t.fromStateId === task.currentStateId) ?? []
 
             return (
               <Card key={task.id} className="border-border/80">
-                <CardContent className="flex flex-col gap-5 p-5 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-3">
+                <CardContent className="flex flex-col gap-4 p-5">
+                  {/* Title row */}
+                  <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-lg font-semibold text-foreground">{task.title}</p>
                       {currentState ? (
@@ -93,47 +140,90 @@ export default function TasksPage() {
                       <span>{workflow?.name ?? 'Workflow instance'}</span>
                       <span className="text-border">/</span>
                       <span>Created {new Date(task.createdAt).toLocaleDateString()}</span>
+                      {task.completedAt ? (
+                        <>
+                          <span className="text-border">/</span>
+                          <span className="text-success">
+                            Completed {new Date(task.completedAt).toLocaleDateString()}
+                          </span>
+                        </>
+                      ) : null}
                     </div>
 
                     {task.description ? (
                       <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{task.description}</p>
                     ) : null}
+                  </div>
 
-                    {metadata.length > 0 ? (
+                  {/* Metadata pills */}
+                  {metadata.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {metadata.map(([key, value]) => (
+                        <div
+                          key={key}
+                          className="rounded-full border border-border bg-muted/30 px-3 py-1 text-xs text-muted-foreground"
+                        >
+                          <span className="font-medium text-foreground/70">{formatKey(key)}:</span>{' '}
+                          {value}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {/* Available Actions */}
+                  {availableTransitions.length > 0 ? (
+                    <div className="border-t border-border pt-4">
+                      <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        Available Actions
+                      </p>
                       <div className="flex flex-wrap gap-2">
-                        {metadata.map(([key, value]) => (
-                          <div
-                            key={key}
-                            className="rounded-full border border-border bg-muted/30 px-3 py-1 text-xs text-muted-foreground"
-                          >
-                            {key}: {value}
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
+                        {availableTransitions.map((t) => {
+                          const destructive = isDestructiveAction(t.actionName)
+                          const variant = getTransitionVariant(t.actionName)
+                          const isPending =
+                            transitionMutation.isPending &&
+                            transitionMutation.variables?.instanceId === task.id &&
+                            transitionMutation.variables?.actionName === t.actionName
 
-                  <div className="flex min-w-[220px] flex-col gap-3 rounded-2xl border border-border bg-muted/20 p-4">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                      <CalendarClock size={13} />
-                      What Happens Next
+                          return (
+                            <Button
+                              key={t.id}
+                              size="sm"
+                              variant={variant}
+                              className={
+                                destructive
+                                  ? 'text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/60'
+                                  : undefined
+                              }
+                              disabled={transitionMutation.isPending}
+                              onClick={() =>
+                                transitionMutation.mutate({ instanceId: task.id, actionName: t.actionName })
+                              }
+                            >
+                              {isPending ? (
+                                <LoadingSpinner className="mr-1.5 h-3 w-3" />
+                              ) : (
+                                <ChevronRight size={13} className="mr-1" />
+                              )}
+                              {t.actionLabel}
+                            </Button>
+                          )
+                        })}
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {currentState
-                        ? `This request is currently in ${currentState.label}. The next valid transition depends on the assigned approver or role.`
-                        : 'This request is active and waiting for the next workflow action.'}
-                    </p>
-                    <div className="inline-flex items-center gap-2 text-sm font-medium text-primary">
-                      <ArrowRight size={14} />
-                      Audit and approvals will build from this state onward.
-                    </div>
-                  </div>
+                  ) : null}
                 </CardContent>
               </Card>
             )
           })}
         </div>
       )}
+
+      <StartWorkflowDialog
+        open={startDialogOpen}
+        onOpenChange={setStartDialogOpen}
+        workflows={workflows}
+      />
     </div>
   )
 }
