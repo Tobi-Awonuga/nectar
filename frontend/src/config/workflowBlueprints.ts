@@ -5,151 +5,290 @@ export interface WorkflowBlueprintField {
   label: string
   placeholder: string
   required?: boolean
-  kind?: 'text' | 'textarea'
+  kind?: 'text' | 'textarea' | 'select'
+  options?: string[]
+  wide?: boolean
 }
 
-export interface WorkflowBlueprint {
+export interface WorkflowCatalogItem {
+  name: string
   slug: string
   category: string
+  departments: string[]
   summary: string
   impact: string
-  forWhom: string[]
   outcomes: string[]
-  useCases: string[]
   guidance: string[]
   fields: WorkflowBlueprintField[]
 }
 
-const fallbackBlueprint: WorkflowBlueprint = {
-  slug: 'general-workflow',
-  category: 'Operations',
-  summary: 'Use this workflow to submit a structured request that needs visibility and approvals.',
-  impact: 'Standardizes intake, ownership, and traceability for recurring internal work.',
-  forWhom: ['Requestors', 'Managers', 'Operations'],
-  outcomes: [
-    'Request is recorded in a consistent format',
-    'Approvers see the right context before acting',
-    'Audit history is preserved from submission onward',
-  ],
-  useCases: [
-    'Any recurring internal process that should not live in email or chat',
-  ],
-  guidance: [
-    'Write a title that explains the business need, not just the object being requested.',
-    'Include enough context that the approver can act without chasing for clarifications.',
-  ],
-  fields: [
-    {
-      key: 'businessJustification',
-      label: 'Business Justification',
-      placeholder: 'Why does this request matter right now?',
-      required: true,
-      kind: 'textarea',
-    },
-  ],
-}
+export const workflowDepartments = [
+  'All Departments',
+  'Production',
+  'Shipping',
+  'Finished Goods',
+  'Logistics',
+  'Regulatory',
+  'ERP / Systems',
+  'Receiving',
+  'Warehouse',
+  'Inventory Control',
+  'QA',
+  'Finance',
+  'Plant Leadership',
+  'Analytics',
+  'Human Resources',
+] as const
 
-const blueprintsByName: Record<string, WorkflowBlueprint> = {
-  'Purchase Request': {
-    slug: 'purchase-request',
-    category: 'Procurement',
-    summary: 'Structured intake for buying goods or services that need business and managerial review.',
-    impact: 'Prevents ad hoc spending and creates a clear approval trail from request to decision.',
-    forWhom: ['Employees', 'Managers', 'Finance / Procurement'],
+const plantOptions = ['Burlington', 'Nashua', 'Medulla', 'Sunrise']
+const shippingLabelIssueTypes = ['Wrong expiry', 'Wrong lot', 'Missing label', 'Wrong item label', 'Shipping document mismatch', 'Traceability concern']
+const receivingIssueTypes = ['Damaged product', 'Missing lot data', 'Expiry issue', 'Wrong quantity', 'Wrong item']
+const cycleCountReasonCodes = ['CC01 - Counting Error', 'CC02 - Damage', 'CC03 - Production Variance', 'CC04 - Receiving Error', 'CC05 - Unknown']
+const supportAreas = ['Item Master', 'Receiving', 'Inventory', 'Transfer Orders', 'Shipping Documents', 'Label Printing', 'Masterplan Access', 'Reporting / Export']
+const employeeChangeTypes = ['Department change', 'Supervisor change', 'Name update', 'Status update', 'Other']
+
+export const workflowCatalog: WorkflowCatalogItem[] = [
+  {
+    name: 'Shipping / Label Incident',
+    slug: 'shipping-label-incident',
+    category: 'Operations Control',
+    departments: ['Production', 'Shipping', 'Finished Goods', 'Logistics', 'Regulatory', 'ERP / Systems'],
+    summary: 'Report label, shipping, and traceability issues before they become dispatch or compliance risks.',
+    impact: 'Creates one controlled path for relabels, ERP corrections, and shipment-impacting decisions.',
     outcomes: [
-      'The request is justified before money is committed',
-      'Approvers can review urgency, cost, and business need in one place',
-      'Rejected requests come back with a clear revision path',
-    ],
-    useCases: [
-      'Requesting packaging materials, ingredients, or line-side consumables',
-      'Buying maintenance parts, tools, or office equipment',
-      'Purchasing software subscriptions or vendor services',
+      'The issue reaches the right owner quickly',
+      'Traceability-sensitive fixes are documented from report to close',
     ],
     guidance: [
-      'State what is being requested and who it is for.',
-      'Call out the operational or financial reason for the purchase.',
-      'If timing matters, explain the deadline and impact of delay.',
+      'Keep the report factual and short. Focus on the item, lot, and what is wrong.',
     ],
     fields: [
-      {
-        key: 'requestedFor',
-        label: 'Requested For',
-        placeholder: 'Who needs this purchase?',
-        required: true,
-      },
-      {
-        key: 'department',
-        label: 'Department',
-        placeholder: 'Which team or function will use it?',
-        required: true,
-      },
-      {
-        key: 'businessJustification',
-        label: 'Business Justification',
-        placeholder: 'Why is this purchase needed?',
-        required: true,
-        kind: 'textarea',
-      },
-      {
-        key: 'targetDate',
-        label: 'Needed By',
-        placeholder: 'When is it needed?',
-      },
+      { key: 'plant', label: 'Plant', placeholder: 'Which plant is affected?', required: true, kind: 'select', options: plantOptions },
+      { key: 'issueType', label: 'Issue Type', placeholder: 'Select the issue type', required: true, kind: 'select', options: shippingLabelIssueTypes },
+      { key: 'itemSku', label: 'Item / SKU', placeholder: 'Enter the item number or SKU', required: true },
+      { key: 'lotNumber', label: 'Lot Number', placeholder: 'Enter the affected lot number', required: true },
+      { key: 'incidentSummary', label: 'What Happened?', placeholder: 'Describe the issue clearly in one or two sentences.', required: true, kind: 'textarea', wide: true },
     ],
   },
-  'IT Access Request': {
-    slug: 'it-access-request',
-    category: 'Access Control',
-    summary: 'Controlled request path for granting access to systems, tools, or restricted internal resources.',
-    impact: 'Reduces informal access grants and gives IT and managers a visible, auditable approval chain.',
-    forWhom: ['Employees', 'Managers', 'IT Admins'],
+  {
+    name: 'Receiving Exception',
+    slug: 'receiving-exception',
+    category: 'Warehouse Control',
+    departments: ['Receiving', 'Warehouse', 'Inventory Control', 'QA', 'ERP / Systems'],
+    summary: 'Capture inbound issues involving ingredients, packaging, lot data, expiry dates, or receiving accuracy.',
+    impact: 'Prevents receiving problems from disappearing into informal fixes.',
     outcomes: [
-      'The right system and access scope are reviewed before provisioning',
-      'Approval and provisioning responsibilities are clearly separated',
-      'Completion is visible to both the requestor and administrators',
-    ],
-    useCases: [
-      'New starter access to ERP, production, QA, or warehouse systems',
-      'Temporary elevated access for a project or incident',
-      'Access to dashboards, shared drives, or operational tools',
+      'Inbound issues get ownership and follow-through',
+      'Lot and expiry problems are documented early',
     ],
     guidance: [
-      'Be explicit about which system or resource is needed.',
-      'Describe the role or task that requires access.',
-      'If the request is temporary, include the expected end date.',
+      'Capture only the shipment facts needed to route the issue and protect traceability.',
     ],
     fields: [
-      {
-        key: 'requestedFor',
-        label: 'Requested For',
-        placeholder: 'Who needs access?',
-        required: true,
-      },
-      {
-        key: 'systemName',
-        label: 'System / Resource',
-        placeholder: 'Which application, folder, or platform is needed?',
-        required: true,
-      },
-      {
-        key: 'accessLevel',
-        label: 'Access Level',
-        placeholder: 'Read only, contributor, admin, etc.',
-        required: true,
-      },
-      {
-        key: 'businessJustification',
-        label: 'Business Justification',
-        placeholder: 'What work requires this access?',
-        required: true,
-        kind: 'textarea',
-      },
+      { key: 'plant', label: 'Plant', placeholder: 'Which plant received the shipment?', required: true, kind: 'select', options: plantOptions },
+      { key: 'supplier', label: 'Supplier', placeholder: 'Supplier name', required: true },
+      { key: 'itemSku', label: 'Item / SKU', placeholder: 'Enter the item number or SKU', required: true },
+      { key: 'lotNumber', label: 'Lot Number', placeholder: 'Enter the lot number', required: true },
+      { key: 'issueType', label: 'Issue Type', placeholder: 'Select the issue type', required: true, kind: 'select', options: receivingIssueTypes },
     ],
   },
+  {
+    name: 'Cycle Count Discrepancy',
+    slug: 'cycle-count-discrepancy',
+    category: 'Inventory Control',
+    departments: ['Inventory Control', 'Warehouse', 'Production', 'ERP / Systems'],
+    summary: 'Investigate count variances with reason codes, ownership, and follow-through.',
+    impact: 'Turns recurring inventory discrepancies into trackable operational work instead of isolated corrections.',
+    outcomes: [
+      'Variance gets reviewed with context',
+      'Reason-code trends can be reused for process improvement',
+    ],
+    guidance: [
+      'Focus on the variance, where it was found, and the likely cause if known.',
+    ],
+    fields: [
+      { key: 'plant', label: 'Plant', placeholder: 'Which plant is affected?', required: true, kind: 'select', options: plantOptions },
+      { key: 'itemSku', label: 'Item / SKU', placeholder: 'Enter the item number or SKU', required: true },
+      { key: 'lotNumber', label: 'Lot Number', placeholder: 'Enter the lot number', required: true },
+      { key: 'binLocation', label: 'Bin / Location', placeholder: 'MF.FLOOR, NF.FLOOR, etc.', required: true },
+      { key: 'reasonCode', label: 'Reason Code', placeholder: 'Select the reason code', required: true, kind: 'select', options: cycleCountReasonCodes },
+    ],
+  },
+  {
+    name: 'Inventory Adjustment Review',
+    slug: 'inventory-adjustment-review',
+    category: 'Inventory Control',
+    departments: ['Inventory Control', 'Warehouse', 'Finance', 'ERP / Systems'],
+    summary: 'Review stock corrections, anomalies, and traceability-sensitive adjustments.',
+    impact: 'Creates a visible path for inventory corrections instead of one-off changes.',
+    outcomes: [
+      'Adjustments are reviewed with context',
+      'Inventory correction logic becomes reusable',
+    ],
+    guidance: [
+      'Capture what someone needs to validate the adjustment, not the full investigation.',
+    ],
+    fields: [
+      { key: 'plant', label: 'Plant', placeholder: 'Which plant is affected?', required: true, kind: 'select', options: plantOptions },
+      { key: 'itemSku', label: 'Item / SKU', placeholder: 'Enter the item number or SKU', required: true },
+      { key: 'lotNumber', label: 'Lot Number', placeholder: 'Enter the lot number', required: true },
+      { key: 'adjustmentReason', label: 'Adjustment Reason', placeholder: 'Why is the stock being adjusted?', required: true, kind: 'textarea', wide: true },
+    ],
+  },
+  {
+    name: 'Transfer Order Issue',
+    slug: 'transfer-order-issue',
+    category: 'Warehouse Movement',
+    departments: ['Warehouse', 'Inventory Control', 'Shipping', 'ERP / Systems'],
+    summary: 'Handle transfer mismatches, location errors, and internal movement exceptions.',
+    impact: 'Gives transfer issues an owner instead of relying on verbal follow-up.',
+    outcomes: [
+      'Transfer issues stay visible until corrected',
+      'Location and movement problems are easier to trace',
+    ],
+    guidance: [
+      'Capture the transfer reference and the location mismatch clearly.',
+    ],
+    fields: [
+      { key: 'plant', label: 'Plant', placeholder: 'Which plant is affected?', required: true, kind: 'select', options: plantOptions },
+      { key: 'transferOrder', label: 'Transfer Order', placeholder: 'Enter the transfer order reference', required: true },
+      { key: 'itemSku', label: 'Item / SKU', placeholder: 'Enter the item number or SKU', required: true },
+      { key: 'lotNumber', label: 'Lot Number', placeholder: 'Enter the lot number', required: true },
+      { key: 'locationIssue', label: 'Location Issue', placeholder: 'What is wrong with the movement or location?', required: true, kind: 'textarea', wide: true },
+    ],
+  },
+  {
+    name: 'Production Consumption Variance',
+    slug: 'production-consumption-variance',
+    category: 'Production Control',
+    departments: ['Production', 'Inventory Control', 'ERP / Systems', 'Plant Leadership'],
+    summary: 'Capture production-to-ERP consumption mismatches and route them to the right owners.',
+    impact: 'Reduces silent production variances and makes follow-up measurable.',
+    outcomes: [
+      'Consumption variances get reviewed consistently',
+      'Inventory and production teams work from the same record',
+    ],
+    guidance: [
+      'Focus on the variance, the affected material, and the production context.',
+    ],
+    fields: [
+      { key: 'plant', label: 'Plant', placeholder: 'Which plant is affected?', required: true, kind: 'select', options: plantOptions },
+      { key: 'itemSku', label: 'Item / SKU', placeholder: 'Enter the consumed item number or SKU', required: true },
+      { key: 'lotNumber', label: 'Lot Number', placeholder: 'Enter the lot number', required: true },
+      { key: 'productionLine', label: 'Production Line', placeholder: 'Which line or area was involved?', required: true },
+      { key: 'varianceSummary', label: 'Variance Summary', placeholder: 'What mismatch was found between production and ERP?', required: true, kind: 'textarea', wide: true },
+    ],
+  },
+  {
+    name: 'ERP / System Support Request',
+    slug: 'erp-system-support-request',
+    category: 'Systems Support',
+    departments: ['ERP / Systems', 'Production', 'Warehouse', 'Shipping', 'Inventory Control', 'Analytics', 'Human Resources'],
+    summary: 'Route Masterplan support issues, access needs, label system problems, and operational blockers.',
+    impact: 'Gives teams one clear path for operational systems support.',
+    outcomes: [
+      'System blockers get owned faster',
+      'Support work is easier to prioritize and reuse in SOPs',
+    ],
+    guidance: [
+      'Describe the issue in operational terms and name the impacted process.',
+    ],
+    fields: [
+      { key: 'plant', label: 'Plant', placeholder: 'Which plant is affected?', required: true, kind: 'select', options: plantOptions },
+      { key: 'systemArea', label: 'System Area', placeholder: 'Select the affected area', required: true, kind: 'select', options: supportAreas },
+      { key: 'processImpacted', label: 'Process Impacted', placeholder: 'What work is blocked or slowed down?', required: true },
+      { key: 'issueSummary', label: 'Issue Summary', placeholder: 'Describe the system issue clearly.', required: true, kind: 'textarea', wide: true },
+    ],
+  },
+  {
+    name: 'Quality / Traceability Hold',
+    slug: 'quality-traceability-hold',
+    category: 'Compliance',
+    departments: ['QA', 'Regulatory', 'Production', 'Inventory Control', 'Shipping'],
+    summary: 'Document lot, expiry, and traceability concerns that require controlled review before release.',
+    impact: 'Protects traceability and ensures hold decisions are visible and auditable.',
+    outcomes: [
+      'Traceability concerns get controlled quickly',
+      'Release decisions are documented clearly',
+    ],
+    guidance: [
+      'Capture only the facts needed to protect traceability and start the hold review.',
+    ],
+    fields: [
+      { key: 'plant', label: 'Plant', placeholder: 'Which plant is affected?', required: true, kind: 'select', options: plantOptions },
+      { key: 'itemSku', label: 'Item / SKU', placeholder: 'Enter the item number or SKU', required: true },
+      { key: 'lotNumber', label: 'Lot Number', placeholder: 'Enter the lot number', required: true },
+      { key: 'holdReason', label: 'Hold Reason', placeholder: 'What traceability or quality concern triggered the hold?', required: true, kind: 'textarea', wide: true },
+    ],
+  },
+  {
+    name: 'Employee Onboarding Request',
+    slug: 'employee-onboarding-request',
+    category: 'Human Resources',
+    departments: ['Human Resources', 'Plant Leadership', 'ERP / Systems'],
+    summary: 'Coordinate onboarding setup for new hires across HR, plant leadership, and systems support.',
+    impact: 'Prevents onboarding work from being split across email, chat, and memory.',
+    outcomes: [
+      'New-hire setup has clear ownership',
+      'HR and operational teams work from the same request',
+    ],
+    guidance: [
+      'Only capture what the teams need to start onboarding cleanly.',
+    ],
+    fields: [
+      { key: 'plant', label: 'Plant', placeholder: 'Which plant or office is the employee joining?', required: true, kind: 'select', options: plantOptions },
+      { key: 'employeeName', label: 'Employee Name', placeholder: 'Enter the employee name', required: true },
+      { key: 'startDate', label: 'Start Date', placeholder: 'When does the employee start?', required: true },
+      { key: 'roleArea', label: 'Role / Department', placeholder: 'What function are they joining?', required: true },
+    ],
+  },
+  {
+    name: 'Employee Record Change',
+    slug: 'employee-record-change',
+    category: 'Human Resources',
+    departments: ['Human Resources', 'ERP / Systems', 'Plant Leadership'],
+    summary: 'Track updates to employee records, department changes, or operational profile corrections.',
+    impact: 'Keeps sensitive employee record updates visible and controlled.',
+    outcomes: [
+      'Record changes are documented and approved clearly',
+      'HR and systems teams avoid silent mismatches',
+    ],
+    guidance: [
+      'Describe the employee change clearly and keep the request factual.',
+    ],
+    fields: [
+      { key: 'employeeName', label: 'Employee Name', placeholder: 'Enter the employee name', required: true },
+      { key: 'changeType', label: 'Change Type', placeholder: 'Select the change type', required: true, kind: 'select', options: employeeChangeTypes },
+      { key: 'effectiveDate', label: 'Effective Date', placeholder: 'When should the change take effect?', required: true },
+      { key: 'changeSummary', label: 'Change Summary', placeholder: 'What needs to be updated?', required: true, kind: 'textarea', wide: true },
+    ],
+  },
+]
+
+function resolveWorkflowName(workflow?: Pick<Workflow, 'name'> | string | null) {
+  if (!workflow) return undefined
+  return typeof workflow === 'string' ? workflow : workflow.name
 }
 
-export function getWorkflowBlueprint(workflow?: Pick<Workflow, 'name'> | null): WorkflowBlueprint {
-  if (!workflow?.name) return fallbackBlueprint
-  return blueprintsByName[workflow.name] ?? fallbackBlueprint
+export function getWorkflowBlueprint(workflow?: Pick<Workflow, 'name'> | string | null) {
+  const workflowName = resolveWorkflowName(workflow)
+  return workflowCatalog.find((item) => item.name === workflowName) ?? {
+    name: 'Workflow',
+    slug: 'general-workflow',
+    category: 'Operations',
+    departments: ['All Departments'],
+    summary: 'Select a workflow to start a structured operational request.',
+    impact: 'Nectar keeps operational work clear, traceable, and reusable across teams and plants.',
+    outcomes: [
+      'The request is captured consistently',
+      'The right team can review it faster',
+    ],
+    guidance: ['Pick the workflow that best matches the operational issue.'],
+    fields: [],
+  }
+}
+
+export function matchesDepartment(workflow: Pick<Workflow, 'name'> | string, department?: string) {
+  if (!department || department === 'All Departments') return true
+  return getWorkflowBlueprint(workflow).departments.includes(department)
 }

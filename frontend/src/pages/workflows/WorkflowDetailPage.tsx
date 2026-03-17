@@ -113,15 +113,15 @@ export default function WorkflowDetailPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">When To Use It</CardTitle>
+              <CardTitle className="text-lg">Applicable Departments</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {blueprint.useCases.map((useCase) => (
+              {blueprint.departments.map((department) => (
                 <div
-                  key={useCase}
+                  key={department}
                   className="rounded-2xl border border-border bg-muted/30 px-4 py-3 text-sm text-foreground"
                 >
-                  {useCase}
+                  {department}
                 </div>
               ))}
             </CardContent>
@@ -177,9 +177,9 @@ export default function WorkflowDetailPage() {
         open={open}
         onOpenChange={setOpen}
         workflows={[workflow]}
-        initialWorkflowId={workflow.id}
+        initialWorkflowName={workflow.name}
+        initialDepartment={blueprint.departments[0]}
       />
     </div>
   )
 }
-

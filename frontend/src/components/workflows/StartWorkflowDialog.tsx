@@ -1,6 +1,11 @@
 import { useEffect, useState, type ChangeEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { getWorkflowBlueprint } from '@/config/workflowBlueprints'
+import {
+  getWorkflowBlueprint,
+  matchesDepartment,
+  workflowCatalog,
+  workflowDepartments,
+} from '@/config/workflowBlueprints'
 import type { Workflow } from '@/types/domain.types'
 import { workflowsService } from '@/services/workflows.service'
 import { Button } from '@/components/ui/button'
@@ -22,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
 
 type Priority = 'low' | 'medium' | 'high' | 'critical'
 
@@ -29,17 +35,21 @@ interface StartWorkflowDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   workflows: Workflow[]
-  initialWorkflowId?: string
+  initialWorkflowName?: string
+  initialDepartment?: string
 }
 
 export function StartWorkflowDialog({
   open,
   onOpenChange,
   workflows,
-  initialWorkflowId,
+  initialWorkflowName,
+  initialDepartment,
 }: StartWorkflowDialogProps) {
   const queryClient = useQueryClient()
-  const [workflowId, setWorkflowId] = useState(initialWorkflowId ?? '')
+  const workflowByName = new Map(workflows.map((workflow) => [workflow.name, workflow]))
+  const [workflowName, setWorkflowName] = useState(initialWorkflowName ?? '')
+  const [department, setDepartment] = useState<string>('All Departments')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<Priority>('medium')
@@ -48,12 +58,21 @@ export function StartWorkflowDialog({
 
   useEffect(() => {
     if (open) {
-      setWorkflowId(initialWorkflowId ?? '')
+      setWorkflowName(initialWorkflowName ?? '')
+      if (initialWorkflowName) {
+        setDepartment(getWorkflowBlueprint(initialWorkflowName).departments[0] ?? initialDepartment ?? 'All Departments')
+      } else if (initialDepartment) {
+        setDepartment(initialDepartment)
+      } else {
+        setDepartment('All Departments')
+      }
     }
-  }, [initialWorkflowId, open])
+  }, [initialDepartment, initialWorkflowName, open])
 
-  const selectedWorkflow = workflows.find((workflow) => workflow.id === workflowId)
-  const blueprint = getWorkflowBlueprint(selectedWorkflow)
+  const availableWorkflows = workflowCatalog.filter((workflow) => matchesDepartment(workflow.name, department))
+  const selectedWorkflow = workflowByName.get(workflowName)
+  const blueprint = getWorkflowBlueprint(workflowName)
+  const isWorkflowAvailable = Boolean(selectedWorkflow)
 
   useEffect(() => {
     setFieldValues((current) =>
@@ -61,7 +80,7 @@ export function StartWorkflowDialog({
         blueprint.fields.map((field) => [field.key, current[field.key] ?? '']),
       ),
     )
-  }, [workflowId, blueprint.fields])
+  }, [workflowName, blueprint.fields])
 
   const createMutation = useMutation({
     mutationFn: workflowsService.createInstance,
@@ -83,9 +102,52 @@ export function StartWorkflowDialog({
     setFieldValues((current) => ({ ...current, [key]: value }))
   }
 
+  function renderWorkflowField(field: (typeof blueprint.fields)[number]) {
+    const value = fieldValues[field.key] ?? ''
+
+    if (field.kind === 'select') {
+      return (
+        <div key={field.key} className={cn('space-y-2', field.wide && 'md:col-span-2')}>
+          <Label htmlFor={field.key}>{field.label}</Label>
+          <Select value={value} onValueChange={(nextValue) => updateFieldValue(field.key, nextValue)}>
+            <SelectTrigger id={field.key}>
+              <SelectValue placeholder={field.placeholder} />
+            </SelectTrigger>
+            <SelectContent>
+              {(field.options ?? []).map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )
+    }
+
+    const sharedProps = {
+      id: field.key,
+      placeholder: field.placeholder,
+      value,
+      onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+        updateFieldValue(field.key, event.target.value),
+    }
+
+    return (
+      <div key={field.key} className={cn('space-y-2', field.wide && 'md:col-span-2')}>
+        <Label htmlFor={field.key}>{field.label}</Label>
+        {field.kind === 'textarea' ? <Textarea {...sharedProps} /> : <Input {...sharedProps} />}
+      </div>
+    )
+  }
+
   function submit() {
-    if (!workflowId) {
+    if (!workflowName) {
       setFormError('Select a workflow template.')
+      return
+    }
+    if (!selectedWorkflow) {
+      setFormError('This workflow is not available in the current backend environment yet.')
       return
     }
     if (!title.trim()) {
@@ -102,7 +164,7 @@ export function StartWorkflowDialog({
 
     setFormError(null)
     createMutation.mutate({
-      workflowId,
+      workflowId: selectedWorkflow.id,
       title: title.trim(),
       description: description.trim() ? description.trim() : undefined,
       priority,
@@ -114,97 +176,163 @@ export function StartWorkflowDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-hidden p-0">
+        <DialogHeader className="border-b border-border bg-muted/20 px-6 py-5">
           <DialogTitle>Create New Request</DialogTitle>
-          <DialogDescription>{blueprint.summary}</DialogDescription>
+          <DialogDescription className="max-w-2xl leading-6">
+            {workflowName ? blueprint.summary : 'Choose a department, then select the workflow that best fits the request.'}
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="workflow">Workflow Template</Label>
-            <Select value={workflowId} onValueChange={setWorkflowId}>
-              <SelectTrigger id="workflow">
-                <SelectValue placeholder="Select template" />
-              </SelectTrigger>
-              <SelectContent>
-                {workflows.map((workflow) => (
-                  <SelectItem key={workflow.id} value={workflow.id}>
-                    {workflow.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="request-title">Request Title</Label>
-            <Input
-              id="request-title"
-              placeholder="Summarize the business need"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="request-description">Context for Reviewers</Label>
-            <Textarea
-              id="request-description"
-              placeholder="Add background, urgency, dependencies, or constraints."
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-            />
-          </div>
-
-          {blueprint.fields.map((field) => {
-            const sharedProps = {
-              id: field.key,
-              placeholder: field.placeholder,
-              value: fieldValues[field.key] ?? '',
-              onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                updateFieldValue(field.key, event.target.value),
-            }
-
-            return (
-              <div key={field.key} className="space-y-2">
-                <Label htmlFor={field.key}>{field.label}</Label>
-                {field.kind === 'textarea' ? (
-                  <Textarea {...sharedProps} />
-                ) : (
-                  <Input {...sharedProps} />
-                )}
+        <div className="max-h-[calc(90vh-146px)] overflow-y-auto px-6 py-5">
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="department">Department</Label>
+                <Select
+                  value={department}
+                  onValueChange={(value) => {
+                    setDepartment(value)
+                    setWorkflowName('')
+                  }}
+                >
+                  <SelectTrigger id="department">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {workflowDepartments.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            )
-          })}
 
-          <div className="space-y-2">
-            <Label htmlFor="priority">Priority</Label>
-            <Select value={priority} onValueChange={(value) => setPriority(value as Priority)}>
-              <SelectTrigger id="priority">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="critical">Critical</SelectItem>
-              </SelectContent>
-            </Select>
+              <div className="space-y-2">
+                <Label htmlFor="workflow">Workflow Template</Label>
+                <Select value={workflowName} onValueChange={setWorkflowName}>
+                  <SelectTrigger id="workflow">
+                    <SelectValue placeholder="Select template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableWorkflows.length > 0 ? (
+                      availableWorkflows.map((workflow) => (
+                        <SelectItem key={workflow.name} value={workflow.name}>
+                          {workflow.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                        No workflows match this department.
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {workflowName ? (
+              <>
+                <div className="rounded-2xl border border-border bg-muted/20 p-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{blueprint.category}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{blueprint.impact}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {blueprint.departments.slice(0, 3).map((departmentLabel) => (
+                        <span
+                          key={departmentLabel}
+                          className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
+                        >
+                          {departmentLabel}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Request</p>
+                    <p className="text-xs text-muted-foreground">Keep this short and operational.</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="request-title">Request Summary</Label>
+                      <Input
+                        id="request-title"
+                        placeholder="Summarize the issue or request"
+                        value={title}
+                        onChange={(event) => setTitle(event.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="request-description">Context</Label>
+                      <Textarea
+                        id="request-description"
+                        placeholder="Add the minimum context a reviewer needs to act."
+                        value={description}
+                        onChange={(event) => setDescription(event.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Key Details</p>
+                    <p className="text-xs text-muted-foreground">Only the fields this workflow actually needs.</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    {blueprint.fields.map((field) => renderWorkflowField(field))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="priority">Priority</Label>
+                    <Select value={priority} onValueChange={(value) => setPriority(value as Priority)}>
+                      <SelectTrigger id="priority">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="critical">Critical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-muted/20 px-4 py-3 text-xs leading-5 text-muted-foreground">
+                    {blueprint.guidance[0]}
+                  </div>
+                </div>
+
+                {!isWorkflowAvailable ? (
+                  <div className="rounded-xl border border-border bg-muted/35 px-4 py-3 text-xs text-muted-foreground">
+                    This workflow is part of the system catalog, but it is not yet available from the backend in this environment.
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <div className="rounded-xl border border-border bg-muted/25 px-4 py-4 text-sm text-muted-foreground">
+                Choose a workflow template first. Nectar will then show only the fields needed for that process.
+              </div>
+            )}
+
+            {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
           </div>
-
-          <div className="rounded-md border border-border bg-muted/40 px-3 py-3 text-xs text-muted-foreground">
-            {blueprint.impact}
-          </div>
-
-          {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-t border-border bg-background px-6 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={createMutation.isPending}>
             Cancel
           </Button>
-          <Button onClick={submit} disabled={createMutation.isPending}>
+          <Button onClick={submit} disabled={!workflowName || !selectedWorkflow || createMutation.isPending}>
             {createMutation.isPending ? 'Creating...' : 'Start Workflow'}
           </Button>
         </DialogFooter>

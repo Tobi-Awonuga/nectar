@@ -7,6 +7,7 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import path from 'path'
 import { env } from './config/env'
 import { db, pool } from './db'
+import { ensureSystemWorkflowCatalog } from './db/systemWorkflowCatalog'
 import router from './routes'
 import { errorHandler } from './middleware/error.middleware'
 
@@ -36,6 +37,10 @@ async function bootstrap() {
     migrationsFolder: path.join(__dirname, 'db', 'migrations'),
   })
   console.log('Migrations complete.')
+
+  console.log('Ensuring system workflow catalog...')
+  await ensureSystemWorkflowCatalog()
+  console.log('System workflow catalog ready.')
 
   app.listen(env.PORT, () => {
     console.log(`Nectar backend running on port ${env.PORT} [${env.NODE_ENV}]`)
