@@ -16,6 +16,7 @@ import type {
   WorkflowState,
   WorkflowTransition,
 } from '../db/schema'
+import * as notificationsService from './notifications.service'
 
 type AppError = Error & { statusCode?: number }
 
@@ -253,6 +254,15 @@ export async function transitionState(
     toStateId: transition.toStateId,
     performedBy: userId,
     comment: comment ?? null,
+  })
+
+  void notificationsService.create({
+    userId: instance.createdBy,
+    type: 'state_changed',
+    title: 'Request updated',
+    message: `Your request "${updated.title}" has moved to a new state.`,
+    entityType: 'workflow_instance',
+    entityId: instance.id,
   })
 
   return updated
