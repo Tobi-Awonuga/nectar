@@ -46,6 +46,9 @@ services:
     container_name: nectar-frontend
     env_file:
       - .env
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     networks:
       - nectar-network
 
