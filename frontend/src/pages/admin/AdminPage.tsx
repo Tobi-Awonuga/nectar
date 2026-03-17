@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Users, UserX, UserCheck, Shield } from 'lucide-react'
+import { Users, UserX, UserCheck, Shield, UserPlus, Check, X } from 'lucide-react'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Button } from '@/components/ui/button'
 import { adminService, type AdminUser, type AdminRole } from '@/services/admin.service'
+import { onboardingService, type PendingOnboardingUser } from '@/services/onboarding.service'
 import { cn } from '@/lib/utils'
 
 function formatDate(iso: string) {
@@ -120,6 +121,28 @@ export default function AdminPage() {
     },
   })
 
+  const pendingQuery = useQuery({
+    queryKey: ['pending-onboarding'],
+    queryFn: onboardingService.getPending,
+  })
+
+  const approveMutation = useMutation({
+    mutationFn: (userId: string) => onboardingService.approve(userId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['pending-onboarding'] })
+      void queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+    },
+  })
+
+  const rejectMutation = useMutation({
+    mutationFn: (userId: string) => onboardingService.reject(userId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['pending-onboarding'] })
+    },
+  })
+
+  const pendingUsers = pendingQuery.data ?? []
+
   const users = usersQuery.data ?? []
   const roles = rolesQuery.data ?? []
   const activeCount = users.filter((u) => u.isActive).length
@@ -132,6 +155,59 @@ export default function AdminPage() {
         <h2 className="text-2xl font-semibold text-foreground">Admin</h2>
         <p className="mt-1 text-sm text-muted-foreground">Manage users and system access.</p>
       </div>
+
+      {/* Pending access requests */}
+      {pendingUsers.length > 0 && (
+        <div className="rounded-xl border border-warning/30 bg-warning/5 p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <UserPlus size={15} className="text-warning" />
+            <h3 className="text-sm font-semibold text-foreground">
+              Pending Access Requests ({pendingUsers.length})
+            </h3>
+          </div>
+          <div className="space-y-2">
+            {pendingUsers.map((item) => {
+              const isApproving = approveMutation.isPending && approveMutation.variables === item.user.id
+              const isRejecting = rejectMutation.isPending && rejectMutation.variables === item.user.id
+              return (
+                <div
+                  key={item.user.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-semibold text-foreground">{item.user.name}</p>
+                    <p className="text-[12px] text-muted-foreground">
+                      {item.user.email}
+                      {item.user.department ? ` · ${item.user.department}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isApproving || isRejecting}
+                      className="h-7 gap-1.5 px-3 text-xs border-destructive/30 text-destructive hover:bg-destructive/5"
+                      onClick={() => rejectMutation.mutate(item.user.id)}
+                    >
+                      {isRejecting ? <LoadingSpinner className="h-3 w-3" /> : <X size={12} />}
+                      Reject
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={isApproving || isRejecting}
+                      className="h-7 gap-1.5 px-3 text-xs"
+                      onClick={() => approveMutation.mutate(item.user.id)}
+                    >
+                      {isApproving ? <LoadingSpinner className="h-3 w-3" /> : <Check size={12} />}
+                      Approve
+                    </Button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
