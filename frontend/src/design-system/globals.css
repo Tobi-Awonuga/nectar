@@ -2,14 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
-@import "./tokens.css";
-
 @layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 231 70% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 17% 95%;
+    --secondary-foreground: 222 47% 20%;
+    --muted: 210 17% 95%;
+    --muted-foreground: 215 16% 52%;
+    --accent: 210 17% 93%;
+    --accent-foreground: 222 47% 15%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --border: 214 20% 90%;
+    --input: 214 20% 90%;
+    --ring: 231 70% 55%;
+    --radius: 0.625rem;
+    --sidebar-background: 229 39% 13%;
+    --sidebar-foreground: 215 25% 75%;
+    --sidebar-accent: 231 70% 55%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-muted: 229 30% 20%;
+    --sidebar-muted-foreground: 215 18% 55%;
+    --sidebar-border: 229 30% 19%;
+    --sidebar-active-bg: 231 60% 22%;
+    --sidebar-active-fg: 0 0% 100%;
+  }
+
+  .dark {
+    --background: 224 39% 8%;
+    --foreground: 213 31% 91%;
+    --card: 224 35% 11%;
+    --card-foreground: 213 31% 91%;
+    --popover: 224 35% 11%;
+    --popover-foreground: 213 31% 91%;
+    --primary: 231 70% 62%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 224 30% 16%;
+    --secondary-foreground: 213 31% 91%;
+    --muted: 224 30% 16%;
+    --muted-foreground: 215 20% 55%;
+    --accent: 224 30% 18%;
+    --accent-foreground: 213 31% 91%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 224 25% 18%;
+    --input: 224 25% 18%;
+    --ring: 231 70% 62%;
+    --sidebar-background: 229 39% 9%;
+    --sidebar-foreground: 215 25% 70%;
+    --sidebar-accent: 231 70% 62%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-muted: 229 30% 15%;
+    --sidebar-muted-foreground: 215 18% 48%;
+    --sidebar-border: 229 30% 14%;
+    --sidebar-active-bg: 231 60% 20%;
+    --sidebar-active-fg: 0 0% 100%;
+  }
+
   * {
     @apply border-border;
   }
+
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
   }
 }

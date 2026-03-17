@@ -44,6 +44,25 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))',
+        },
+        warning: {
+          DEFAULT: 'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning-foreground))',
+        },
+        sidebar: {
+          DEFAULT: 'hsl(var(--sidebar-background))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          accent: 'hsl(var(--sidebar-accent))',
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          muted: 'hsl(var(--sidebar-muted))',
+          'muted-foreground': 'hsl(var(--sidebar-muted-foreground))',
+          border: 'hsl(var(--sidebar-border))',
+          'active-bg': 'hsl(var(--sidebar-active-bg))',
+          'active-fg': 'hsl(var(--sidebar-active-fg))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

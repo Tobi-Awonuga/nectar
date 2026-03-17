@@ -1,12 +1,8 @@
-import { AppShell } from '@/components/layout/AppShell'
-import { PageContainer } from '@/components/layout/PageContainer'
-
 export default function WorkflowDetailPage() {
   return (
-    <AppShell>
-      <PageContainer title="Workflow Detail">
-        <p className="text-muted-foreground">Coming soon.</p>
-      </PageContainer>
-    </AppShell>
+    <div>
+      <h2 className="text-2xl font-semibold text-foreground">Workflow Detail</h2>
+      <p className="mt-2 text-muted-foreground">Coming soon.</p>
+    </div>
   )
 }

@@ -11,6 +11,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: '0.0.0.0',
+    allowedHosts: ['nectar.ct.applications'],
     proxy: {
       '/api': {
         target: 'http://backend:3000',
