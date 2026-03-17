@@ -2,9 +2,8 @@ import { Navigate, Outlet } from 'react-router-dom'
 import { useAuthContext } from '../../context/AuthContext'
 import { LoadingSpinner } from '../shared/LoadingSpinner'
 
-// Wraps all protected routes — redirects to /login if not authenticated
 export function AuthGuard() {
-  const { isAuthenticated, isLoading } = useAuthContext()
+  const { user, isAuthenticated, isLoading } = useAuthContext()
 
   if (isLoading) {
     return (
@@ -14,8 +13,16 @@ export function AuthGuard() {
     )
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+
+  // New user hasn't filled in their profile yet
+  if (user?.onboardingStatus === 'pending_onboarding') {
+    return <Navigate to="/onboarding" replace />
+  }
+
+  // User submitted onboarding, waiting for admin approval
+  if (user?.onboardingStatus === 'pending_approval' || user?.onboardingStatus === 'rejected') {
+    return <Navigate to="/pending-approval" replace />
   }
 
   return <Outlet />

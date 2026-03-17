@@ -2,6 +2,8 @@ import { createBrowserRouter } from 'react-router-dom'
 import { AuthGuard } from './components/auth/AuthGuard'
 import { AppShell } from './components/layout/AppShell'
 import LoginPage from './pages/auth/LoginPage'
+import OnboardingPage from './pages/auth/OnboardingPage'
+import PendingApprovalPage from './pages/auth/PendingApprovalPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
 import WorkflowsPage from './pages/workflows/WorkflowsPage'
 import WorkflowDetailPage from './pages/workflows/WorkflowDetailPage'
@@ -14,6 +16,14 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/onboarding',
+    element: <OnboardingPage />,
+  },
+  {
+    path: '/pending-approval',
+    element: <PendingApprovalPage />,
   },
   {
     // AuthGuard checks authentication — renders <Outlet /> or redirects to /login

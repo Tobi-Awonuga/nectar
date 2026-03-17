@@ -4,6 +4,8 @@ export interface User {
   name: string
   avatarUrl?: string
   isActive: boolean
+  onboardingStatus?: 'pending_onboarding' | 'pending_approval' | 'approved' | 'rejected'
+  department?: string
   createdAt: string
 }
 

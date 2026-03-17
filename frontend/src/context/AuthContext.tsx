@@ -10,6 +10,7 @@ interface AuthContextValue {
   isAuthenticated: boolean
   login: () => Promise<void>
   logout: () => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -51,6 +52,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.data.user)
   }
 
+  async function refreshUser() {
+    try {
+      const res = await apiClient.get<{ data: User }>('/auth/me')
+      setUser(res.data.data)
+    } catch {
+      // silent
+    }
+  }
+
   async function logout() {
     await apiClient.post('/auth/logout')
     localStorage.removeItem('nectar_token')
@@ -59,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )
