@@ -27,10 +27,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
-      PORT: 3000
-      # Uses 'postgres' hostname — the Docker service name on nectar-network
+      # Override DATABASE_URL — inside Docker the db host is 'postgres', not localhost
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     volumes:
       - ./backend:/app
@@ -44,6 +44,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.dev
     container_name: nectar-frontend
+    env_file:
+      - .env
     networks:
       - nectar-network
 
