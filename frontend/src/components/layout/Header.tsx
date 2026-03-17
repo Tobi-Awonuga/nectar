@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Bell, ChevronDown, LogOut, Menu, Settings } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthContext } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
+import { notificationsService } from '@/services/notifications.service'
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -36,8 +38,21 @@ function getInitials(name: string): string {
 export function Header({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuthContext()
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const notifRef = useRef<HTMLDivElement>(null)
+
+  const notificationsQuery = useQuery({
+    queryKey: ['notifications'],
+    queryFn: notificationsService.getAll,
+  })
+
+  const notifData = notificationsQuery.data?.data ?? []
+  const unreadCount = notifData.filter((n) => !n.isRead).length
+  const notifications = notifData
+  const { refetch } = notificationsQuery
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -48,6 +63,16 @@ export function Header({ onMenuClick }: HeaderProps) {
     if (dropdownOpen) document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [dropdownOpen])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false)
+      }
+    }
+    if (notifOpen) document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [notifOpen])
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-6">
@@ -68,16 +93,65 @@ export function Header({ onMenuClick }: HeaderProps) {
       {/* Right */}
       <div className="flex items-center gap-1">
         {/* Notifications */}
-        <button
-          className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          aria-label="Notifications"
-        >
-          <Bell size={17} />
-          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary ring-2 ring-card" />
-        </button>
+        <div ref={notifRef} className="relative">
+          <button
+            onClick={() => setNotifOpen((p) => !p)}
+            className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            aria-label="Notifications"
+          >
+            <Bell size={17} />
+            {unreadCount > 0 && (
+              <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary ring-2 ring-card" />
+            )}
+          </button>
+
+          {notifOpen && (
+            <div className="absolute right-0 top-full z-50 mt-1.5 w-80 rounded-xl border border-border bg-popover shadow-lg shadow-black/5">
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <p className="text-sm font-semibold text-foreground">Notifications</p>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={() => void notificationsService.markAllRead().then(() => refetch())}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Mark all read
+                  </button>
+                )}
+              </div>
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    No notifications
+                  </div>
+                ) : (
+                  notifications.slice(0, 10).map((notif) => (
+                    <div
+                      key={notif.id}
+                      className={cn(
+                        'flex items-start gap-3 px-4 py-3 border-b border-border/50 last:border-0',
+                        !notif.isRead && 'bg-primary/[0.03]'
+                      )}
+                    >
+                      <div className={cn('mt-1 h-1.5 w-1.5 shrink-0 rounded-full', notif.isRead ? 'bg-transparent' : 'bg-primary')} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-medium text-foreground leading-snug">{notif.title}</p>
+                        {notif.message && (
+                          <p className="mt-0.5 text-[12px] text-muted-foreground line-clamp-2">{notif.message}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Settings */}
-        <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+        <button
+          onClick={() => navigate('/admin')}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
           <Settings size={17} />
         </button>
 
