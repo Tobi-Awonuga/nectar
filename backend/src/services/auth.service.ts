@@ -15,7 +15,11 @@ interface MicrosoftTokenPayload {
 
 export interface LoginResult {
   token: string
-  user: Pick<User, 'id' | 'email' | 'name' | 'avatarUrl'> & { roles: string[] }
+  user: Pick<User, 'id' | 'email' | 'name' | 'avatarUrl' | 'isActive'> & {
+    roles: string[]
+    onboardingStatus: string
+    department: string | null
+  }
 }
 
 // Step 1: Validate the Microsoft ID token against Microsoft's public JWKS
@@ -80,27 +84,16 @@ async function upsertUser(data: {
 
   const [created] = await db
     .insert(users)
-    .values({ email: data.email, name: data.name, azureOid: data.azureOid })
+    .values({
+      email: data.email,
+      name: data.name,
+      azureOid: data.azureOid,
+      isActive: false,
+      onboardingStatus: 'pending_onboarding',
+    })
     .returning()
 
-  // Auto-assign the "Employee" role on first login.
-  // Silently skip if the role doesn't exist yet (edge case during initial setup).
-  try {
-    const employeeRole = await db
-      .select({ id: roles.id })
-      .from(roles)
-      .where(eq(roles.name, 'Employee'))
-      .limit(1)
-
-    if (employeeRole.length > 0) {
-      await db
-        .insert(userRoles)
-        .values({ userId: created.id, roleId: employeeRole[0].id })
-        .onConflictDoNothing()
-    }
-  } catch {
-    // Non-fatal: role assignment failure must not block login
-  }
+  // New users require admin approval before accessing the app — do NOT assign roles here.
 
   return { user: created, isNew: true }
 }
@@ -142,7 +135,16 @@ export async function login(idToken: string): Promise<LoginResult> {
 
   return {
     token,
-    user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl, roles: roleNames },
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+      isActive: user.isActive,
+      onboardingStatus: user.onboardingStatus,
+      department: user.department ?? null,
+      roles: roleNames,
+    },
   }
 }
 
