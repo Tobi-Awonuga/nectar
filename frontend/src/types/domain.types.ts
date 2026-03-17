@@ -18,7 +18,11 @@ export interface Workflow {
   name: string
   description?: string
   isActive: boolean
+  createdBy?: string
   createdAt: string
+  updatedAt?: string
+  states?: WorkflowState[]
+  transitions?: WorkflowTransition[]
 }
 
 export interface WorkflowState {
@@ -30,6 +34,15 @@ export interface WorkflowState {
   isFinal: boolean
   color?: string
   position: number
+}
+
+export interface WorkflowTransition {
+  id: string
+  workflowId: string
+  fromStateId: string
+  toStateId: string
+  actionName: string
+  actionLabel: string
 }
 
 export interface WorkflowInstance {

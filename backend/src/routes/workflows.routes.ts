@@ -17,24 +17,24 @@ const router = Router()
 router.use(authenticate)
 
 // GET /api/workflows — list all active workflows
-router.get('/', requirePermission('workflows:read'), getWorkflows)
+router.get('/', requirePermission('workflow:read'), getWorkflows)
 
 // POST /api/workflows — create a new workflow definition
-router.post('/', requirePermission('workflows:create'), createWorkflow)
+router.post('/', requirePermission('workflow:create'), createWorkflow)
 
 // GET /api/workflows/:id — get a workflow by ID
-router.get('/:id', requirePermission('workflows:read'), getWorkflowById)
+router.get('/:id', requirePermission('workflow:read'), getWorkflowById)
 
 // PATCH /api/workflows/:id — update a workflow definition
-router.patch('/:id', requirePermission('workflows:write'), updateWorkflow)
+router.patch('/:id', requirePermission('workflow:update'), updateWorkflow)
 
 // DELETE /api/workflows/:id — soft-delete a workflow
-router.delete('/:id', requirePermission('workflows:delete'), deleteWorkflow)
+router.delete('/:id', requirePermission('workflow:delete'), deleteWorkflow)
 
 // GET /api/workflows/:id/states — list states for a workflow
-router.get('/:id/states', requirePermission('workflows:read'), getWorkflowStates)
+router.get('/:id/states', requirePermission('workflow:read'), getWorkflowStates)
 
 // GET /api/workflows/:id/transitions — list transitions for a workflow
-router.get('/:id/transitions', requirePermission('workflows:read'), getWorkflowTransitions)
+router.get('/:id/transitions', requirePermission('workflow:read'), getWorkflowTransitions)
 
 export default router

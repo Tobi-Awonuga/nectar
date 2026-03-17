@@ -16,21 +16,21 @@ const router = Router()
 router.use(authenticate)
 
 // GET /api/tasks — list workflow instances (tasks)
-router.get('/', requirePermission('tasks:read'), getTasks)
+router.get('/', requirePermission('task:read'), getTasks)
 
 // POST /api/tasks — create a new workflow instance
-router.post('/', requirePermission('tasks:create'), createTask)
+router.post('/', requirePermission('task:update'), createTask)
 
 // GET /api/tasks/:id — get a task by ID
-router.get('/:id', requirePermission('tasks:read'), getTaskById)
+router.get('/:id', requirePermission('task:read'), getTaskById)
 
 // PATCH /api/tasks/:id — update task metadata
-router.patch('/:id', requirePermission('tasks:write'), updateTask)
+router.patch('/:id', requirePermission('task:update'), updateTask)
 
 // DELETE /api/tasks/:id — soft-delete a task
-router.delete('/:id', requirePermission('tasks:delete'), deleteTask)
+router.delete('/:id', requirePermission('task:update'), deleteTask)
 
 // POST /api/tasks/:id/transition — fire a state transition (core workflow engine endpoint)
-router.post('/:id/transition', requirePermission('tasks:transition'), transitionState)
+router.post('/:id/transition', requirePermission('task:update'), transitionState)
 
 export default router

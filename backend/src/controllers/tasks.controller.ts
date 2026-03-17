@@ -62,13 +62,12 @@ export async function transitionState(
   next: NextFunction,
 ): Promise<void> {
   try {
-    // TODO: extract actionName and optional comment from req.body
-    // TODO: call workflowsService.transitionState with instanceId, actionName, userId
-    const { actionName } = req.body as { actionName: string }
+    const { actionName, comment } = req.body as { actionName: string; comment?: string }
     const result = await workflowsService.transitionState(
       req.params.id,
       actionName,
       req.user?.id ?? '',
+      comment,
     )
     res.status(200).json({ data: result })
   } catch (err) {

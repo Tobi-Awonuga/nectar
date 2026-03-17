@@ -1,5 +1,5 @@
 import { apiClient } from './api.client'
-import type { Workflow, WorkflowInstance, PaginatedResponse } from '../types/domain.types'
+import type { Workflow, WorkflowInstance } from '../types/domain.types'
 
 export const workflowsService = {
   async getWorkflows(): Promise<Workflow[]> {
@@ -7,9 +7,14 @@ export const workflowsService = {
     return data.data
   },
 
-  async getInstances(params?: { page?: number; limit?: number }): Promise<PaginatedResponse<WorkflowInstance>> {
-    const { data } = await apiClient.get<PaginatedResponse<WorkflowInstance>>('/tasks', { params })
-    return data
+  async getInstances(params?: { page?: number; limit?: number }): Promise<WorkflowInstance[]> {
+    const { data } = await apiClient.get<{ data: WorkflowInstance[] }>('/tasks', { params })
+    return data.data
+  },
+
+  async getWorkflow(id: string): Promise<Workflow> {
+    const { data } = await apiClient.get<{ data: Workflow }>(`/workflows/${id}`)
+    return data.data
   },
 
   async getInstance(id: string): Promise<WorkflowInstance> {
@@ -17,7 +22,13 @@ export const workflowsService = {
     return data.data
   },
 
-  async createInstance(payload: { workflowId: string; title: string; description?: string; priority?: string }): Promise<WorkflowInstance> {
+  async createInstance(payload: {
+    workflowId: string
+    title: string
+    description?: string
+    priority?: string
+    metadata?: Record<string, string>
+  }): Promise<WorkflowInstance> {
     const { data } = await apiClient.post<{ data: WorkflowInstance }>('/tasks', payload)
     return data.data
   },
