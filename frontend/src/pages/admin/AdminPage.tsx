@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Users, UserX, UserCheck, Shield } from 'lucide-react'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Button } from '@/components/ui/button'
-import { adminService, type AdminUser } from '@/services/admin.service'
+import { adminService, type AdminUser, type AdminRole } from '@/services/admin.service'
 import { cn } from '@/lib/utils'
 
 function formatDate(iso: string) {
@@ -50,12 +50,66 @@ function StatPill({
   )
 }
 
+function UserRoleCell({ userId, roles }: { userId: string; roles: AdminRole[] }) {
+  const queryClient = useQueryClient()
+  const userRolesQuery = useQuery({
+    queryKey: ['user-roles', userId],
+    queryFn: () => adminService.getUserRoles(userId),
+  })
+  const assignMutation = useMutation({
+    mutationFn: (roleId: string) => adminService.assignRole(userId, roleId),
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['user-roles', userId] }) },
+  })
+  const removeMutation = useMutation({
+    mutationFn: (roleId: string) => adminService.removeRole(userId, roleId),
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['user-roles', userId] }) },
+  })
+
+  const userRoles = userRolesQuery.data ?? []
+  const unassignedRoles = roles.filter((r) => !userRoles.some((ur) => ur.id === r.id))
+
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {userRoles.map((role) => (
+        <span key={role.id} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+          {role.name}
+          <button
+            onClick={() => removeMutation.mutate(role.id)}
+            className="ml-0.5 text-primary/60 hover:text-destructive"
+            disabled={removeMutation.isPending}
+          >
+            ×
+          </button>
+        </span>
+      ))}
+      {unassignedRoles.length > 0 && (
+        <select
+          className="rounded border border-border bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground"
+          value=""
+          onChange={(e) => { if (e.target.value) assignMutation.mutate(e.target.value) }}
+          disabled={assignMutation.isPending}
+        >
+          <option value="">+ Role</option>
+          {unassignedRoles.map((r) => (
+            <option key={r.id} value={r.id}>{r.name}</option>
+          ))}
+        </select>
+      )}
+    </div>
+  )
+}
+
 export default function AdminPage() {
   const queryClient = useQueryClient()
 
   const usersQuery = useQuery({
     queryKey: ['admin-users'],
     queryFn: adminService.getUsers,
+  })
+
+  const rolesQuery = useQuery({
+    queryKey: ['roles'],
+    queryFn: adminService.getRoles,
   })
 
   const updateMutation = useMutation({
@@ -67,6 +121,7 @@ export default function AdminPage() {
   })
 
   const users = usersQuery.data ?? []
+  const roles = rolesQuery.data ?? []
   const activeCount = users.filter((u) => u.isActive).length
   const inactiveCount = users.length - activeCount
 
@@ -135,6 +190,11 @@ export default function AdminPage() {
                 Status
               </span>
             </div>
+            <div className="hidden w-40 md:block">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Role
+              </span>
+            </div>
             <div className="hidden w-28 md:block">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Joined
@@ -187,6 +247,11 @@ export default function AdminPage() {
                       />
                       {user.isActive ? 'Active' : 'Inactive'}
                     </span>
+                  </div>
+
+                  {/* Role */}
+                  <div className="hidden w-40 md:block">
+                    <UserRoleCell userId={user.id} roles={roles} />
                   </div>
 
                   {/* Joined date */}

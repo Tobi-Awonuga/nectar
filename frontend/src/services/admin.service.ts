@@ -9,6 +9,13 @@ export interface AdminUser {
   createdAt: string
 }
 
+export interface AdminRole {
+  id: string
+  name: string
+  description: string | null
+  createdAt: string
+}
+
 export const adminService = {
   async getUsers(): Promise<AdminUser[]> {
     const { data } = await apiClient.get<{ data: AdminUser[] }>('/users')
@@ -22,5 +29,23 @@ export const adminService = {
 
   async deleteUser(id: string): Promise<void> {
     await apiClient.delete(`/users/${id}`)
+  },
+
+  async getRoles(): Promise<AdminRole[]> {
+    const { data } = await apiClient.get<{ data: AdminRole[] }>('/users/roles')
+    return data.data
+  },
+
+  async getUserRoles(userId: string): Promise<AdminRole[]> {
+    const { data } = await apiClient.get<{ data: AdminRole[] }>(`/users/${userId}/roles`)
+    return data.data
+  },
+
+  async assignRole(userId: string, roleId: string): Promise<void> {
+    await apiClient.post(`/users/${userId}/roles`, { roleId })
+  },
+
+  async removeRole(userId: string, roleId: string): Promise<void> {
+    await apiClient.delete(`/users/${userId}/roles/${roleId}`)
   },
 }
