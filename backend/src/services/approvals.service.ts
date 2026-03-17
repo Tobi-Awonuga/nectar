@@ -1,6 +1,6 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { db } from '../db'
-import { workflowInstances, workflowStates } from '../db/schema'
+import { transitionAllowedRoles, userRoles, workflowInstances, workflowStates, workflowTransitions } from '../db/schema'
 import type { WorkflowInstance } from '../db/schema'
 import * as workflowsService from './workflows.service'
 
@@ -13,7 +13,28 @@ export interface PendingApproval extends WorkflowInstance {
 }
 
 export async function getPending(userId: string): Promise<PendingApproval[]> {
-  void userId
+  // Get user's roles
+  const userRoleRows = await db
+    .select({ roleId: userRoles.roleId })
+    .from(userRoles)
+    .where(eq(userRoles.userId, userId))
+
+  if (userRoleRows.length === 0) return []
+
+  const roleIds = userRoleRows.map((r) => r.roleId)
+
+  // Find all from-states where the user's roles have allowed transitions
+  const allowedTransitionRows = await db
+    .select({ fromStateId: workflowTransitions.fromStateId })
+    .from(transitionAllowedRoles)
+    .innerJoin(workflowTransitions, eq(workflowTransitions.id, transitionAllowedRoles.transitionId))
+    .where(inArray(transitionAllowedRoles.roleId, roleIds))
+
+  if (allowedTransitionRows.length === 0) return []
+
+  const actionableStateIds = [...new Set(allowedTransitionRows.map((t) => t.fromStateId))]
+
+  // Get open instances currently in those actionable states
   const instances = await db
     .select()
     .from(workflowInstances)
@@ -21,12 +42,12 @@ export async function getPending(userId: string): Promise<PendingApproval[]> {
       and(
         isNull(workflowInstances.deletedAt),
         isNull(workflowInstances.completedAt),
+        inArray(workflowInstances.currentStateId, actionableStateIds),
       ),
     )
 
   if (instances.length === 0) return []
 
-  // Enrich with current state label for each instance
   const result: PendingApproval[] = []
   for (const instance of instances) {
     const [state] = await db
