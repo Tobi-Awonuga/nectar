@@ -1,12 +1,13 @@
-import { NavLink } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, Link } from 'react-router-dom'
 import {
-  LayoutDashboard,
   GitBranch,
   CheckSquare,
   ShieldCheck,
   ScrollText,
   Settings,
   ChevronLeft,
+  ChevronDown,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -17,7 +18,6 @@ interface SidebarProps {
 }
 
 const navItems: { to: string; label: string; icon: LucideIcon }[] = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/workflows', label: 'Workflows', icon: GitBranch },
   { to: '/tasks', label: 'My Tasks', icon: CheckSquare },
   { to: '/approvals', label: 'Approvals', icon: ShieldCheck },
@@ -29,6 +29,9 @@ const adminItems: { to: string; label: string; icon: LucideIcon }[] = [
 ]
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+  const [mainOpen, setMainOpen] = useState(true)
+  const [systemOpen, setSystemOpen] = useState(true)
+
   return (
     <aside
       className={cn(
@@ -44,19 +47,25 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       >
         {!collapsed && (
-          <div className="flex items-center gap-2.5">
+          <Link
+            to="/"
+            className="flex items-center gap-2.5 no-underline"
+            style={{ textDecoration: 'none' }}
+          >
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-accent">
               <span className="text-xs font-bold text-white">N</span>
             </div>
             <span className="text-[15px] font-semibold tracking-tight text-white">
               Nectar
             </span>
-          </div>
+          </Link>
         )}
         {collapsed && (
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-accent">
-            <span className="text-xs font-bold text-white">N</span>
-          </div>
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-accent">
+              <span className="text-xs font-bold text-white">N</span>
+            </div>
+          </Link>
         )}
         {!collapsed && (
           <button
@@ -72,22 +81,36 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Nav */}
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-4">
         {!collapsed && (
-          <p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted-foreground">
-            Main
-          </p>
+          <button
+            onClick={() => setMainOpen((p) => !p)}
+            className="mb-1 flex w-full items-center justify-between px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted-foreground hover:text-sidebar-foreground transition-colors"
+          >
+            <span>Main</span>
+            <ChevronDown
+              size={11}
+              className={cn('transition-transform duration-200', mainOpen ? 'rotate-0' : '-rotate-90')}
+            />
+          </button>
         )}
-        {navItems.map((item) => (
+        {(collapsed || mainOpen) && navItems.map((item) => (
           <SidebarLink key={item.to} collapsed={collapsed} {...item} />
         ))}
 
         <div className="my-3 border-t border-sidebar-border" />
 
         {!collapsed && (
-          <p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted-foreground">
-            System
-          </p>
+          <button
+            onClick={() => setSystemOpen((p) => !p)}
+            className="mb-1 flex w-full items-center justify-between px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted-foreground hover:text-sidebar-foreground transition-colors"
+          >
+            <span>System</span>
+            <ChevronDown
+              size={11}
+              className={cn('transition-transform duration-200', systemOpen ? 'rotate-0' : '-rotate-90')}
+            />
+          </button>
         )}
-        {adminItems.map((item) => (
+        {(collapsed || systemOpen) && adminItems.map((item) => (
           <SidebarLink key={item.to} collapsed={collapsed} {...item} />
         ))}
       </nav>
