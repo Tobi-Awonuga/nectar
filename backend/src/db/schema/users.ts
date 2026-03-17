@@ -9,6 +9,8 @@ export const users = pgTable('users', {
   azureOid: varchar('azure_oid', { length: 255 }).unique(),
   avatarUrl: text('avatar_url'),
   isActive: boolean('is_active').default(true).notNull(),
+  onboardingStatus: varchar('onboarding_status', { length: 50 }).default('approved').notNull(),
+  department: varchar('department', { length: 100 }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
