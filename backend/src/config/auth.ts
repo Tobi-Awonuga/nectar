@@ -1,3 +1,4 @@
+import jwt from 'jsonwebtoken'
 import jwksRsa from 'jwks-rsa'
 import { env } from './env'
 
@@ -13,5 +14,5 @@ export const jwksClient = jwksRsa({
 export const microsoftJwtOptions = {
   audience: env.AZURE_CLIENT_ID,
   issuer: `https://login.microsoftonline.com/${env.AZURE_TENANT_ID}/v2.0`,
-  algorithms: ['RS256'] as const,
+  algorithms: ['RS256'] as jwt.Algorithm[],
 }
