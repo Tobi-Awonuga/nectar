@@ -6,6 +6,7 @@ import tasksRoutes from './tasks.routes'
 import approvalsRoutes from './approvals.routes'
 import notificationsRoutes from './notifications.routes'
 import auditRoutes from './audit.routes'
+import onboardingRoutes from './onboarding.routes'
 
 const router = Router()
 
@@ -16,5 +17,6 @@ router.use('/tasks', tasksRoutes)
 router.use('/approvals', approvalsRoutes)
 router.use('/notifications', notificationsRoutes)
 router.use('/audit', auditRoutes)
+router.use('/onboarding', onboardingRoutes)
 
 export default router
