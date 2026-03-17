@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
+import { AuthGuard } from './components/auth/AuthGuard'
 import LoginPage from './pages/auth/LoginPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
 import WorkflowsPage from './pages/workflows/WorkflowsPage'
@@ -14,16 +15,16 @@ export const router = createBrowserRouter([
     element: <LoginPage />,
   },
   {
-    path: '/',
-    // TODO: wrap with AuthGuard layout component
+    // AuthGuard renders <Outlet /> when authenticated, <Navigate to="/login" /> when not
+    element: <AuthGuard />,
     children: [
-      { index: true, element: <DashboardPage /> },
-      { path: 'workflows', element: <WorkflowsPage /> },
-      { path: 'workflows/:id', element: <WorkflowDetailPage /> },
-      { path: 'tasks', element: <TasksPage /> },
-      { path: 'approvals', element: <ApprovalsPage /> },
-      { path: 'audit', element: <AuditLogPage /> },
-      { path: 'admin', element: <AdminPage /> },
+      { path: '/', element: <DashboardPage /> },
+      { path: '/workflows', element: <WorkflowsPage /> },
+      { path: '/workflows/:id', element: <WorkflowDetailPage /> },
+      { path: '/tasks', element: <TasksPage /> },
+      { path: '/approvals', element: <ApprovalsPage /> },
+      { path: '/audit', element: <AuditLogPage /> },
+      { path: '/admin', element: <AdminPage /> },
     ],
   },
 ])
