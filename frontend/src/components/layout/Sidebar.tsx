@@ -7,6 +7,7 @@ import {
   ScrollText,
   Settings,
   ChevronLeft,
+  type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -15,7 +16,7 @@ interface SidebarProps {
   onToggle: () => void
 }
 
-const navItems = [
+const navItems: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/workflows', label: 'Workflows', icon: GitBranch },
   { to: '/tasks', label: 'My Tasks', icon: CheckSquare },
@@ -23,7 +24,7 @@ const navItems = [
   { to: '/audit', label: 'Audit Log', icon: ScrollText },
 ]
 
-const adminItems = [
+const adminItems: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/admin', label: 'Admin', icon: Settings },
 ]
 
@@ -113,7 +114,7 @@ function SidebarLink({
 }: {
   to: string
   label: string
-  icon: React.ComponentType<{ size?: number; className?: string }>
+  icon: LucideIcon
   collapsed: boolean
 }) {
   return (
