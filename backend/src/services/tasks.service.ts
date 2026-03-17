@@ -1,12 +1,14 @@
-import { and, asc, desc, eq, isNull } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, or } from 'drizzle-orm'
 import { db } from '../db'
 import {
+  instanceAssignments,
   workflowEvents,
   workflowInstances,
   workflows,
   workflowStates,
 } from '../db/schema'
 import type { WorkflowInstance } from '../db/schema'
+import * as notificationsService from './notifications.service'
 
 type AppError = Error & { statusCode?: number }
 
@@ -25,11 +27,19 @@ interface CreateTaskInput {
   metadata?: Record<string, unknown>
 }
 
-export async function getAll(_query: Record<string, unknown>): Promise<WorkflowInstance[]> {
+export async function getAll(userId: string, _query: Record<string, unknown>): Promise<WorkflowInstance[]> {
   return db
     .select()
     .from(workflowInstances)
-    .where(isNull(workflowInstances.deletedAt))
+    .where(
+      and(
+        isNull(workflowInstances.deletedAt),
+        or(
+          eq(workflowInstances.createdBy, userId),
+          eq(workflowInstances.assignedTo, userId),
+        ),
+      ),
+    )
     .orderBy(desc(workflowInstances.createdAt))
 }
 
@@ -99,6 +109,23 @@ export async function create(
       source: 'api',
       workflowId: workflow.id,
     },
+  })
+
+  // Record initial assignment
+  await db.insert(instanceAssignments).values({
+    instanceId: created.id,
+    userId: createdBy,
+    assignedBy: createdBy,
+  })
+
+  // Notify the requester
+  await notificationsService.create({
+    userId: createdBy,
+    type: 'task_assigned',
+    title: 'Request submitted',
+    message: `Your request "${created.title}" has been submitted successfully.`,
+    entityType: 'workflow_instance',
+    entityId: created.id,
   })
 
   return created

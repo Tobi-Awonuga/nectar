@@ -5,7 +5,7 @@ import * as workflowsService from '../services/workflows.service'
 export async function getTasks(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     // TODO: parse pagination/filter params, call tasksService.getAll
-    const result = await tasksService.getAll(req.query as Record<string, unknown>)
+    const result = await tasksService.getAll(req.user?.id ?? '', req.query as Record<string, unknown>)
     res.status(200).json({ data: result })
   } catch (err) {
     next(err)
