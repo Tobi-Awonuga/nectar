@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, CheckCircle2, CircleDot, Clock3, Plus } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckCircle2, CircleDot, Clock3, Plus } from 'lucide-react'
 import { StartWorkflowDialog } from '@/components/workflows/StartWorkflowDialog'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { StatusBadge } from '@/components/shared/StatusBadge'
@@ -48,6 +48,11 @@ export default function WorkflowDetailPage() {
 
   return (
     <div className="space-y-6">
+      <Link to="/workflows" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <ArrowLeft size={14} />
+        Back to Workflows
+      </Link>
+
       <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
