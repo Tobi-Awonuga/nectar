@@ -1,6 +1,15 @@
 import type { Request, Response, NextFunction } from 'express'
 import * as usersService from '../services/users.service'
 
+export async function getUserDirectory(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await usersService.getDirectory(req.query as Record<string, unknown>)
+    res.status(200).json({ data: result })
+  } catch (err) {
+    next(err)
+  }
+}
+
 export async function getUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     // TODO: parse pagination params from req.query, call usersService.getAll

@@ -3,12 +3,37 @@ import { db } from '../db'
 import { roles, userRoles, users } from '../db/schema'
 import type { Role, User } from '../db/schema'
 
+export interface UserDirectoryEntry {
+  id: string
+  name: string
+  email: string
+  department: string | null
+}
+
 export async function getAll(_query: Record<string, unknown>): Promise<User[]> {
   return db
     .select()
     .from(users)
     .where(isNull(users.deletedAt))
     .orderBy(asc(users.createdAt))
+}
+
+export async function getDirectory(query: Record<string, unknown>): Promise<UserDirectoryEntry[]> {
+  const department = typeof query.department === 'string' && query.department.trim() ? query.department.trim() : null
+  const whereClause = department
+    ? and(isNull(users.deletedAt), eq(users.isActive, true), eq(users.department, department))
+    : and(isNull(users.deletedAt), eq(users.isActive, true))
+
+  return db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      department: users.department,
+    })
+    .from(users)
+    .where(whereClause)
+    .orderBy(asc(users.name))
 }
 
 export async function getById(id: string): Promise<User | null> {

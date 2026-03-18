@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { NectarLogo } from '@/components/brand/NectarLogo'
 import { useAuthContext } from '../../context/AuthContext'
 
 export default function LoginPage() {
@@ -35,12 +36,7 @@ export default function LoginPage() {
         <div className="pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
 
         {/* Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/30">
-            <span className="text-sm font-bold text-white">N</span>
-          </div>
-          <span className="text-xl font-semibold tracking-tight text-white">Nectar</span>
-        </div>
+        <NectarLogo size="md" className="relative z-10" wordmarkClassName="text-white" />
 
         {/* Main copy */}
         <div className="relative z-10 space-y-6">
@@ -80,12 +76,7 @@ export default function LoginPage() {
       {/* Right — sign-in panel */}
       <div className="flex w-full flex-col items-center justify-center bg-background px-8 lg:w-[45%]">
         {/* Mobile logo */}
-        <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-xs font-bold text-white">N</span>
-          </div>
-          <span className="text-lg font-semibold tracking-tight text-foreground">Nectar</span>
-        </div>
+        <NectarLogo size="sm" className="mb-8 lg:hidden" />
 
         <div className="w-full max-w-sm space-y-8">
           <div className="space-y-2">

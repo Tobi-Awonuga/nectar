@@ -1,5 +1,6 @@
 import { Clock, LogOut, CheckCircle2 } from 'lucide-react'
 import { useAuthContext } from '../../context/AuthContext'
+import { NectarLogo } from '@/components/brand/NectarLogo'
 import { Button } from '@/components/ui/button'
 
 export default function PendingApprovalPage() {
@@ -10,9 +11,7 @@ export default function PendingApprovalPage() {
       <div className="w-full max-w-md text-center space-y-6">
         {/* Logo */}
         <div className="flex justify-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20">
-            <span className="text-sm font-bold text-white">N</span>
-          </div>
+          <NectarLogo size="sm" showWordmark={false} />
         </div>
 
         {/* Icon */}

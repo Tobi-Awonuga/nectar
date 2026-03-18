@@ -20,6 +20,7 @@ export const workflowInstances = pgTable('workflow_instances', {
   assignedTo: uuid('assigned_to').references(() => users.id),
   // Department that owns this request (routes to their queue)
   ownerDepartment: varchar('owner_department', { length: 100 }),
+  ownerUserId: uuid('owner_user_id').references(() => users.id),
   // 'public' | 'private' — private requests are only visible to sender and recipient
   visibility: varchar('visibility', { length: 20 }).default('public').notNull(),
   // 'low' | 'medium' | 'high' | 'critical'
@@ -68,7 +69,24 @@ export const instanceAssignments = pgTable('instance_assignments', {
   assignedAt: timestamp('assigned_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
+export const requestParticipants = pgTable('request_participants', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  instanceId: uuid('instance_id')
+    .notNull()
+    .references(() => workflowInstances.id, { onDelete: 'cascade' }),
+  participantType: varchar('participant_type', { length: 20 }).notNull(),
+  participantScope: varchar('participant_scope', { length: 20 }).notNull(),
+  department: varchar('department', { length: 100 }),
+  userId: uuid('user_id').references(() => users.id),
+  addedBy: uuid('added_by')
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+})
+
 export type WorkflowInstance = typeof workflowInstances.$inferSelect
 export type NewWorkflowInstance = typeof workflowInstances.$inferInsert
 export type WorkflowEvent = typeof workflowEvents.$inferSelect
 export type NewWorkflowEvent = typeof workflowEvents.$inferInsert
+export type RequestParticipant = typeof requestParticipants.$inferSelect
+export type NewRequestParticipant = typeof requestParticipants.$inferInsert

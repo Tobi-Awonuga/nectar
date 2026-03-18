@@ -87,10 +87,10 @@ export default function TasksPage() {
               <ClipboardList size={22} />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold text-foreground">My Requests</h2>
+              <h2 className="text-2xl font-semibold text-foreground">Tasks</h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                Track the operational work you started. Each request shows its current state, the workflow it
-                belongs to, and the available actions you can take.
+                Track the operational work tied to you. Each request shows its owner, owning department,
+                watcher visibility, and the actions you can take.
               </p>
             </div>
           </div>
@@ -144,6 +144,12 @@ export default function TasksPage() {
                           <span className="text-xs font-medium text-foreground/60">{task.ownerDepartment}</span>
                         </>
                       )}
+                      {task.ownerUser?.name && (
+                        <>
+                          <span className="text-border">/</span>
+                          <span className="text-xs font-medium text-foreground/60">Owner: {task.ownerUser.name}</span>
+                        </>
+                      )}
                       <span className="text-border">/</span>
                       <span>Created {new Date(task.createdAt).toLocaleDateString()}</span>
                       {task.completedAt ? (
@@ -171,6 +177,19 @@ export default function TasksPage() {
                         >
                           <span className="font-medium text-foreground/70">{formatKey(key)}:</span>{' '}
                           {value}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {task.watchingDepartments.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {task.watchingDepartments.map((department) => (
+                        <div
+                          key={department}
+                          className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground"
+                        >
+                          Watching: <span className="font-medium text-foreground/70">{department}</span>
                         </div>
                       ))}
                     </div>

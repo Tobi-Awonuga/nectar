@@ -1,7 +1,17 @@
 import { Router } from 'express'
 import { authenticate } from '../middleware/auth.middleware'
 import { requirePermission } from '../middleware/rbac.middleware'
-import { getUsers, getUserById, updateUser, deleteUser, getUserRoles, getAllRoles, assignRole, removeRole } from '../controllers/users.controller'
+import {
+  getUsers,
+  getUserDirectory,
+  getUserById,
+  updateUser,
+  deleteUser,
+  getUserRoles,
+  getAllRoles,
+  assignRole,
+  removeRole,
+} from '../controllers/users.controller'
 
 const router = Router()
 
@@ -10,6 +20,9 @@ router.use(authenticate)
 
 // GET /api/users — list all users
 router.get('/', requirePermission('users:read'), getUsers)
+
+// GET /api/users/directory — lightweight user list for request routing
+router.get('/directory', requirePermission('task:read'), getUserDirectory)
 
 // GET /api/users/roles — list all available roles
 router.get('/roles', requirePermission('users:read'), getAllRoles)

@@ -9,6 +9,13 @@ export interface User {
   createdAt: string
 }
 
+export interface RequestUser {
+  id: string
+  email: string
+  name: string
+  department?: string | null
+}
+
 export interface Role {
   id: string
   name: string
@@ -57,6 +64,9 @@ export interface WorkflowInstance {
   createdBy: string
   assignedTo?: string
   ownerDepartment?: string
+  ownerUserId?: string
+  ownerUser?: RequestUser | null
+  watchingDepartments: string[]
   visibility?: 'public' | 'private'
   priority: 'low' | 'medium' | 'high' | 'critical'
   dueDate?: string

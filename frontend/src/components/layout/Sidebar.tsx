@@ -14,6 +14,7 @@ import {
   ChevronDown,
   type LucideIcon,
 } from 'lucide-react'
+import { NectarLogo } from '@/components/brand/NectarLogo'
 import { cn } from '@/lib/utils'
 
 interface SidebarProps {
@@ -24,8 +25,8 @@ interface SidebarProps {
 const navItems: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/workflows', label: 'Workflows', icon: GitBranch },
-  { to: '/tasks', label: 'My Requests', icon: CheckSquare },
-  { to: '/queue', label: 'Queue', icon: Layers },
+  { to: '/tasks', label: 'Tasks', icon: CheckSquare },
+  { to: '/queue', label: 'Dept Queue', icon: Layers },
   { to: '/approvals', label: 'Approvals', icon: ShieldCheck },
   { to: '/inbox', label: 'Inbox', icon: Inbox },
 ]
@@ -43,11 +44,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'relative flex h-screen flex-col bg-sidebar transition-all duration-300 ease-in-out',
+        'relative flex h-screen flex-col overflow-hidden bg-sidebar transition-all duration-300 ease-in-out before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_22%)]',
         collapsed ? 'w-[68px]' : 'w-[240px]',
       )}
     >
-      {/* Brand */}
       <div
         className={cn(
           'flex h-16 shrink-0 items-center border-b border-sidebar-border px-4',
@@ -55,22 +55,17 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       >
         {!collapsed && (
-          <Link
-            to="/"
-            className="flex items-center gap-2.5 no-underline"
-            style={{ textDecoration: 'none' }}
-          >
-            <NectarLogo size={30} />
-            <span className="text-[15px] font-semibold tracking-tight text-white">
-              Nectar
-            </span>
+          <Link to="/" className="no-underline" style={{ textDecoration: 'none' }}>
+            <NectarLogo size="sm" wordmarkClassName="text-white" />
           </Link>
         )}
+
         {collapsed && (
           <Link to="/" style={{ textDecoration: 'none' }}>
-            <NectarLogo size={30} />
+            <NectarLogo size="sm" showWordmark={false} />
           </Link>
         )}
+
         {!collapsed && (
           <button
             onClick={onToggle}
@@ -82,12 +77,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       </div>
 
-      {/* Nav */}
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-4">
         {!collapsed && (
           <button
             onClick={() => setMainOpen((p) => !p)}
-            className="mb-1 flex w-full items-center justify-between px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted-foreground hover:text-sidebar-foreground transition-colors"
+            className="mb-1 flex w-full items-center justify-between px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted-foreground transition-colors hover:text-sidebar-foreground"
           >
             <span>Main</span>
             <ChevronDown
@@ -105,7 +99,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {!collapsed && (
           <button
             onClick={() => setSystemOpen((p) => !p)}
-            className="mb-1 flex w-full items-center justify-between px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted-foreground hover:text-sidebar-foreground transition-colors"
+            className="mb-1 flex w-full items-center justify-between px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted-foreground transition-colors hover:text-sidebar-foreground"
           >
             <span>System</span>
             <ChevronDown
@@ -119,7 +113,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Collapse toggle when collapsed */}
       {collapsed && (
         <button
           onClick={onToggle}
@@ -130,33 +123,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </button>
       )}
     </aside>
-  )
-}
-
-function NectarLogo({ size = 28 }: { size?: number }) {
-  const r = Math.round(size * 0.27) // corner radius scales with size
-  return (
-    <div
-      style={{ width: size, height: size, borderRadius: r }}
-      className="shrink-0 flex items-center justify-center bg-sidebar-accent shadow-sm shadow-black/30"
-    >
-      <svg
-        width={Math.round(size * 0.52)}
-        height={Math.round(size * 0.6)}
-        viewBox="0 0 14 16"
-        fill="none"
-        aria-hidden="true"
-      >
-        {/* Vector N lettermark — left bar, diagonal, right bar */}
-        <path
-          d="M1.5 14.5V1.5L12.5 14.5V1.5"
-          stroke="white"
-          strokeWidth="2.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </div>
   )
 }
 
@@ -178,7 +144,7 @@ function SidebarLink({
       title={collapsed ? label : undefined}
       className={({ isActive }) =>
         cn(
-          'group flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-all duration-150',
+          'group relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-all duration-150',
           collapsed && 'justify-center px-0 py-2.5',
           isActive
             ? 'bg-sidebar-active-bg text-sidebar-active-fg'

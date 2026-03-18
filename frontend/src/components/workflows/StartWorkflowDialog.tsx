@@ -1,5 +1,5 @@
-import { useEffect, useState, type ChangeEvent } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getWorkflowBlueprint,
   matchesDepartment,
@@ -8,6 +8,7 @@ import {
 } from '@/config/workflowBlueprints'
 import type { Workflow } from '@/types/domain.types'
 import { workflowsService } from '@/services/workflows.service'
+import { usersService } from '@/services/users.service'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -54,17 +55,26 @@ export function StartWorkflowDialog({
   const [priority, setPriority] = useState<Priority>('medium')
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
+  const [ownerUserId, setOwnerUserId] = useState('')
+  const [watchingDepartments, setWatchingDepartments] = useState<string[]>([])
 
   useEffect(() => {
-    if (open) {
-      setWorkflowName(initialWorkflowName ?? '')
-      if (initialWorkflowName) {
-        setDepartment(getWorkflowBlueprint(initialWorkflowName).departments[0] ?? initialDepartment ?? 'All Departments')
-      } else if (initialDepartment) {
-        setDepartment(initialDepartment)
-      } else {
-        setDepartment('All Departments')
-      }
+    if (!open) return
+
+    setWorkflowName(initialWorkflowName ?? '')
+    setTitle('')
+    setDescription('')
+    setPriority('medium')
+    setFormError(null)
+    setFieldValues({})
+    setOwnerUserId('')
+
+    if (initialWorkflowName) {
+      setDepartment(getWorkflowBlueprint(initialWorkflowName).departments[0] ?? initialDepartment ?? 'All Departments')
+    } else if (initialDepartment) {
+      setDepartment(initialDepartment)
+    } else {
+      setDepartment('All Departments')
     }
   }, [initialDepartment, initialWorkflowName, open])
 
@@ -72,14 +82,30 @@ export function StartWorkflowDialog({
   const selectedWorkflow = workflowByName.get(workflowName)
   const blueprint = getWorkflowBlueprint(workflowName)
   const isWorkflowAvailable = Boolean(selectedWorkflow)
+  const ownerDepartment =
+    department !== 'All Departments' ? department : (blueprint.departments[0] ?? '')
+  const defaultWatchingDepartments = useMemo(
+    () => blueprint.departments.filter((candidateDepartment) => candidateDepartment !== ownerDepartment),
+    [blueprint.departments, ownerDepartment],
+  )
+
+  const directoryQuery = useQuery({
+    queryKey: ['user-directory', ownerDepartment],
+    queryFn: () => usersService.getDirectory({ department: ownerDepartment }),
+    enabled: open && Boolean(ownerDepartment),
+  })
 
   useEffect(() => {
     setFieldValues((current) =>
-      Object.fromEntries(
-        blueprint.fields.map((field) => [field.key, current[field.key] ?? '']),
-      ),
+      Object.fromEntries(blueprint.fields.map((field) => [field.key, current[field.key] ?? ''])),
     )
-  }, [workflowName, blueprint.fields])
+  }, [blueprint.fields, workflowName])
+
+  useEffect(() => {
+    if (!open || !workflowName) return
+    setOwnerUserId('')
+    setWatchingDepartments(defaultWatchingDepartments)
+  }, [defaultWatchingDepartments, open, workflowName])
 
   const createMutation = useMutation({
     mutationFn: workflowsService.createInstance,
@@ -88,9 +114,14 @@ export function StartWorkflowDialog({
       setDescription('')
       setPriority('medium')
       setFieldValues({})
+      setOwnerUserId('')
+      setWatchingDepartments([])
       setFormError(null)
       onOpenChange(false)
-      void queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+        queryClient.invalidateQueries({ queryKey: ['queue'] }),
+      ])
     },
     onError: () => {
       setFormError('Failed to create request. Please try again.')
@@ -138,7 +169,7 @@ export function StartWorkflowDialog({
             id={field.key}
             type="date"
             value={value}
-            onChange={(e) => updateFieldValue(field.key, e.target.value)}
+            onChange={(event) => updateFieldValue(field.key, event.target.value)}
             className="block w-full"
           />
         </div>
@@ -186,16 +217,15 @@ export function StartWorkflowDialog({
     }
 
     setFormError(null)
-    // Derive ownerDepartment: prefer the explicit department filter if set, else blueprint's first department
-    const ownerDepartment =
-      department !== 'All Departments' ? department : (blueprint.departments[0] ?? undefined)
 
     createMutation.mutate({
       workflowId: selectedWorkflow.id,
       title: title.trim(),
       description: description.trim() ? description.trim() : undefined,
       priority,
-      ownerDepartment,
+      ownerDepartment: ownerDepartment || undefined,
+      ownerUserId: ownerUserId || undefined,
+      watchingDepartments,
       metadata: Object.fromEntries(
         Object.entries(fieldValues).filter(([, value]) => value.trim().length > 0),
       ),
@@ -204,12 +234,12 @@ export function StartWorkflowDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex flex-col max-h-[92vh] max-w-2xl overflow-hidden p-0 gap-0">
+      <DialogContent className="flex max-h-[92vh] max-w-2xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="shrink-0 border-b border-border px-6 py-5">
           <DialogTitle className="text-base font-semibold">Create New Request</DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           <div className="space-y-5">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -259,6 +289,77 @@ export function StartWorkflowDialog({
 
             {workflowName ? (
               <>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="owner-department">Owner Department</Label>
+                    <Input id="owner-department" value={ownerDepartment || 'Unassigned'} disabled />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="owner-user">
+                      Owner User <span className="font-normal text-muted-foreground">(optional)</span>
+                    </Label>
+                    <Select
+                      value={ownerUserId || 'unassigned'}
+                      onValueChange={(value) => setOwnerUserId(value === 'unassigned' ? '' : value)}
+                      disabled={!ownerDepartment || directoryQuery.isLoading}
+                    >
+                      <SelectTrigger id="owner-user">
+                        <SelectValue
+                          placeholder={
+                            ownerDepartment
+                              ? 'Assign a person in this department'
+                              : 'Select a department first'
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Leave unassigned</SelectItem>
+                        {(directoryQuery.data ?? []).map((candidate) => (
+                          <SelectItem key={candidate.id} value={candidate.id}>
+                            {candidate.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {defaultWatchingDepartments.length > 0 ? (
+                  <div className="space-y-2">
+                    <Label>Watching Departments</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {defaultWatchingDepartments.map((candidateDepartment) => {
+                        const selected = watchingDepartments.includes(candidateDepartment)
+                        return (
+                          <button
+                            key={candidateDepartment}
+                            type="button"
+                            onClick={() =>
+                              setWatchingDepartments((current) =>
+                                selected
+                                  ? current.filter((item) => item !== candidateDepartment)
+                                  : [...current, candidateDepartment],
+                              )
+                            }
+                            className={cn(
+                              'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                              selected
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground',
+                            )}
+                          >
+                            {candidateDepartment}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Watching departments can follow progress without owning the request.
+                    </p>
+                  </div>
+                ) : null}
+
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="request-title">Title</Label>
                   <Input
@@ -271,8 +372,7 @@ export function StartWorkflowDialog({
 
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="request-description">
-                    Context{' '}
-                    <span className="text-muted-foreground font-normal">(optional)</span>
+                    Context <span className="font-normal text-muted-foreground">(optional)</span>
                   </Label>
                   <Textarea
                     id="request-description"
@@ -309,12 +409,12 @@ export function StartWorkflowDialog({
           </div>
         </div>
 
-        <DialogFooter className="shrink-0 border-t border-border bg-muted/20 px-6 py-4 flex flex-row justify-end gap-2">
+        <DialogFooter className="flex flex-row justify-end gap-2 border-t border-border bg-muted/20 px-6 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={createMutation.isPending}>
             Cancel
           </Button>
           <Button onClick={submit} disabled={!workflowName || !isWorkflowAvailable || createMutation.isPending}>
-            {createMutation.isPending ? 'Submitting…' : 'Submit Request'}
+            {createMutation.isPending ? 'Submitting...' : 'Submit Request'}
           </Button>
         </DialogFooter>
       </DialogContent>

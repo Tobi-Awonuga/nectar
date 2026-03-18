@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuthContext } from '../../context/AuthContext'
 import { onboardingService } from '../../services/onboarding.service'
+import { NectarLogo } from '@/components/brand/NectarLogo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -54,12 +55,7 @@ export default function OnboardingPage() {
     <div className="flex h-screen w-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-lg space-y-8">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-            <span className="text-sm font-bold text-white">N</span>
-          </div>
-          <span className="text-lg font-semibold tracking-tight text-foreground">Nectar</span>
-        </div>
+        <NectarLogo size="sm" />
 
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Welcome to Nectar</h1>

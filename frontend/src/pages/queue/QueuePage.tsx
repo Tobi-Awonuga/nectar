@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Layers, ChevronRight, Building2 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { StatusBadge } from '@/components/shared/StatusBadge'
@@ -45,7 +45,7 @@ export default function QueuePage() {
     mutationFn: ({ instanceId, actionName }: { instanceId: string; actionName: string }) =>
       workflowsService.transition(instanceId, actionName),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue'] })
+      void queryClient.invalidateQueries({ queryKey: ['queue'] })
     },
   })
 
@@ -70,11 +70,10 @@ export default function QueuePage() {
 
   const workflows = workflowsQuery.data ?? []
   const { department, instances } = queueQuery.data ?? { department: null, instances: [] }
-  const workflowById = Object.fromEntries(workflows.map((w) => [w.id, w]))
+  const workflowById = Object.fromEntries(workflows.map((workflow) => [workflow.id, workflow]))
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
       <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -91,7 +90,8 @@ export default function QueuePage() {
               )}
             </div>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              All open requests routed to your department. Work these in order of priority — take action or reassign as needed.
+              All open requests routed to your department. Review the current owner, keep watcher
+              departments informed, and move work forward in priority order.
             </p>
           </div>
         </div>
@@ -110,24 +110,21 @@ export default function QueuePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Queue is clear</CardTitle>
-            <CardDescription>
-              No open requests are currently routed to {department}.
-            </CardDescription>
+            <CardDescription>No open requests are currently routed to {department}.</CardDescription>
           </CardHeader>
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {instances.map((instance) => {
             const workflow = workflowById[instance.workflowId]
-            const currentState = workflow?.states?.find((s) => s.id === instance.currentStateId)
+            const currentState = workflow?.states?.find((state) => state.id === instance.currentStateId)
             const metadata = formatMetadata(instance.metadata)
             const availableTransitions =
-              workflow?.transitions?.filter((t) => t.fromStateId === instance.currentStateId) ?? []
+              workflow?.transitions?.filter((transition) => transition.fromStateId === instance.currentStateId) ?? []
 
             return (
               <Card key={instance.id} className="border-border/80">
                 <CardContent className="flex flex-col gap-4 p-5">
-                  {/* Title row */}
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-lg font-semibold text-foreground">{instance.title}</p>
@@ -139,6 +136,12 @@ export default function QueuePage() {
 
                     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                       <span>{workflow?.name ?? 'Workflow instance'}</span>
+                      {instance.ownerUser?.name && (
+                        <>
+                          <span className="text-border">/</span>
+                          <span className="text-xs font-medium text-foreground/60">Owner: {instance.ownerUser.name}</span>
+                        </>
+                      )}
                       <span className="text-border">/</span>
                       <span>Created {new Date(instance.createdAt).toLocaleDateString()}</span>
                       {instance.completedAt && (
@@ -156,7 +159,6 @@ export default function QueuePage() {
                     )}
                   </div>
 
-                  {/* Metadata pills */}
                   {metadata.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {metadata.map(([key, value]) => (
@@ -164,41 +166,55 @@ export default function QueuePage() {
                           key={key}
                           className="rounded-full border border-border bg-muted/30 px-3 py-1 text-xs text-muted-foreground"
                         >
-                          <span className="font-medium text-foreground/70">{formatKey(key)}:</span>{' '}
-                          {value}
+                          <span className="font-medium text-foreground/70">{formatKey(key)}:</span> {value}
                         </div>
                       ))}
                     </div>
                   )}
 
-                  {/* Available Actions */}
+                  {instance.watchingDepartments.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {instance.watchingDepartments.map((departmentName) => (
+                        <div
+                          key={departmentName}
+                          className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground"
+                        >
+                          Watching: <span className="font-medium text-foreground/70">{departmentName}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {availableTransitions.length > 0 && (
                     <div className="border-t border-border pt-4">
                       <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                         Available Actions
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {availableTransitions.map((t) => {
-                          const destructive = isDestructiveAction(t.actionName)
-                          const variant = getTransitionVariant(t.actionName)
+                        {availableTransitions.map((transition) => {
+                          const destructive = isDestructiveAction(transition.actionName)
+                          const variant = getTransitionVariant(transition.actionName)
                           const isPending =
                             transitionMutation.isPending &&
                             transitionMutation.variables?.instanceId === instance.id &&
-                            transitionMutation.variables?.actionName === t.actionName
+                            transitionMutation.variables?.actionName === transition.actionName
 
                           return (
                             <Button
-                              key={t.id}
+                              key={transition.id}
                               size="sm"
                               variant={variant}
                               className={
                                 destructive
-                                  ? 'text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/60'
+                                  ? 'border-destructive/30 text-destructive hover:border-destructive/60 hover:text-destructive'
                                   : undefined
                               }
                               disabled={transitionMutation.isPending}
                               onClick={() =>
-                                transitionMutation.mutate({ instanceId: instance.id, actionName: t.actionName })
+                                transitionMutation.mutate({
+                                  instanceId: instance.id,
+                                  actionName: transition.actionName,
+                                })
                               }
                             >
                               {isPending ? (
@@ -206,7 +222,7 @@ export default function QueuePage() {
                               ) : (
                                 <ChevronRight size={13} className="mr-1" />
                               )}
-                              {t.actionLabel}
+                              {transition.actionLabel}
                             </Button>
                           )
                         })}

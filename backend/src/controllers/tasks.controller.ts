@@ -47,8 +47,7 @@ export async function getTaskById(req: Request, res: Response, next: NextFunctio
 
 export async function updateTask(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // TODO: call tasksService.update with req.params.id and req.body
-    const result = await tasksService.update(req.params.id, req.body)
+    const result = await tasksService.update(req.params.id, req.body, req.user?.id)
     res.status(200).json({ data: result })
   } catch (err) {
     next(err)

@@ -13,8 +13,11 @@ interface HeaderProps {
 const pageTitles: Record<string, string> = {
   '/': 'Dashboard',
   '/workflows': 'Workflows',
-  '/tasks': 'My Tasks',
+  '/tasks': 'Tasks',
+  '/queue': 'Department Queue',
   '/approvals': 'Approvals',
+  '/inbox': 'Inbox',
+  '/access-requests': 'Access Requests',
   '/audit': 'Audit Log',
   '/admin': 'Admin',
 }
