@@ -17,6 +17,18 @@ export interface AdminRole {
   createdAt: string
 }
 
+export interface DepartmentDefaultAssignee {
+  department: string
+  userId: string
+  updatedAt: string
+  user: {
+    id: string
+    name: string
+    email: string
+    department: string | null
+  } | null
+}
+
 export const adminService = {
   async getUsers(): Promise<AdminUser[]> {
     const { data } = await apiClient.get<{ data: AdminUser[] }>('/users')
@@ -48,5 +60,18 @@ export const adminService = {
 
   async removeRole(userId: string, roleId: string): Promise<void> {
     await apiClient.delete(`/users/${userId}/roles/${roleId}`)
+  },
+
+  async getDepartmentDefaults(): Promise<DepartmentDefaultAssignee[]> {
+    const { data } = await apiClient.get<{ data: DepartmentDefaultAssignee[] }>('/department-defaults')
+    return data.data
+  },
+
+  async setDepartmentDefault(department: string, userId: string): Promise<DepartmentDefaultAssignee> {
+    const { data } = await apiClient.put<{ data: DepartmentDefaultAssignee }>('/department-defaults', {
+      department,
+      userId,
+    })
+    return data.data
   },
 }

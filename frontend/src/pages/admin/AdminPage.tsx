@@ -1,54 +1,67 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Users, UserX, UserCheck, Shield, UserPlus, ChevronDown, X, ArrowRight } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  Users,
+  UserX,
+  UserCheck,
+  Shield,
+  UserPlus,
+  ChevronDown,
+  X,
+  ArrowRight,
+  Route,
+} from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Button } from '@/components/ui/button'
-import { adminService, type AdminUser, type AdminRole } from '@/services/admin.service'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { adminService, type AdminRole, type AdminUser } from '@/services/admin.service'
 import { onboardingService } from '@/services/onboarding.service'
 import { workflowDepartments } from '@/config/workflowBlueprints'
 import { cn } from '@/lib/utils'
 
-const DEPARTMENTS = workflowDepartments.filter((d) => d !== 'All Departments')
+const DEPARTMENTS = workflowDepartments.filter((department) => department !== 'All Departments')
 
-// ── Role styling ──────────────────────────────────────────────────────────────
-
-const roleConfig: Record<string, {
-  label: string
-  description: string
-  pill: string
-  permissions: string[]
-}> = {
+const roleConfig: Record<
+  string,
+  {
+    label: string
+    description: string
+    pill: string
+  }
+> = {
   Admin: {
     label: 'Admin',
     description: 'Full platform access',
     pill: 'bg-violet-100 text-violet-700 border-violet-200',
-    permissions: ['All permissions'],
   },
   Manager: {
     label: 'Manager',
     description: 'Approve requests, manage workflows',
     pill: 'bg-blue-100 text-blue-700 border-blue-200',
-    permissions: ['Approve & reject', 'Manage workflows', 'Assign tasks', 'View audit log'],
   },
   Employee: {
     label: 'Employee',
     description: 'Create and view own requests',
     pill: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    permissions: ['Submit requests', 'View workflows', 'View own tasks'],
   },
 }
 
 function getRoleConfig(name: string) {
-  return roleConfig[name] ?? {
-    label: name,
-    description: '',
-    pill: 'bg-muted text-muted-foreground border-border',
-    permissions: [],
-  }
+  return (
+    roleConfig[name] ?? {
+      label: name,
+      description: '',
+      pill: 'bg-muted text-muted-foreground border-border',
+    }
+  )
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -84,19 +97,16 @@ function StatPill({
         <Icon size={15} className="shrink-0" />
       </div>
       <div>
-        <p className="text-lg font-bold tabular-nums text-foreground leading-none">{value}</p>
+        <p className="text-lg font-bold leading-none tabular-nums text-foreground">{value}</p>
         <p className="mt-0.5 text-[12px] text-muted-foreground">{label}</p>
       </div>
     </div>
   )
 }
 
-// ── Department inline edit ────────────────────────────────────────────────────
-
 function UserDeptCell({ userId, currentDept }: { userId: string; currentDept: string | null }) {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
 
   const updateMutation = useMutation({
     mutationFn: (department: string) => adminService.updateUser(userId, { department }),
@@ -107,9 +117,9 @@ function UserDeptCell({ userId, currentDept }: { userId: string; currentDept: st
   })
 
   return (
-    <div ref={ref} className="relative mt-0.5">
+    <div className="relative mt-0.5">
       <button
-        onClick={() => setOpen((p) => !p)}
+        onClick={() => setOpen((previous) => !previous)}
         className={cn(
           'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors',
           currentDept
@@ -122,20 +132,22 @@ function UserDeptCell({ userId, currentDept }: { userId: string; currentDept: st
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 w-52 rounded-xl border border-border bg-popover shadow-lg shadow-black/5 overflow-hidden">
+        <div className="absolute left-0 top-full z-30 mt-1 w-52 overflow-hidden rounded-xl border border-border bg-popover shadow-lg shadow-black/5">
           <div className="max-h-56 overflow-y-auto">
-            {DEPARTMENTS.map((dept) => (
+            {DEPARTMENTS.map((department) => (
               <button
-                key={dept}
-                onClick={() => updateMutation.mutate(dept)}
+                key={department}
+                onClick={() => updateMutation.mutate(department)}
                 disabled={updateMutation.isPending}
                 className={cn(
                   'flex w-full items-center px-3 py-2 text-left text-[12px] transition-colors hover:bg-accent',
-                  dept === currentDept && 'text-primary font-semibold',
+                  department === currentDept && 'font-semibold text-primary',
                 )}
               >
-                {dept}
-                {dept === currentDept && <span className="ml-auto text-primary/50 text-[10px]">current</span>}
+                {department}
+                {department === currentDept && (
+                  <span className="ml-auto text-[10px] text-primary/50">current</span>
+                )}
               </button>
             ))}
           </div>
@@ -144,8 +156,6 @@ function UserDeptCell({ userId, currentDept }: { userId: string; currentDept: st
     </div>
   )
 }
-
-// ── Role cell ────────────────────────────────────────────────────────────────
 
 function UserRoleCell({ userId, allRoles }: { userId: string; allRoles: AdminRole[] }) {
   const queryClient = useQueryClient()
@@ -171,21 +181,21 @@ function UserRoleCell({ userId, allRoles }: { userId: string; allRoles: AdminRol
   })
 
   const userRoles = userRolesQuery.data ?? []
-  const unassignedRoles = allRoles.filter((r) => !userRoles.some((ur) => ur.id === r.id))
+  const unassignedRoles = allRoles.filter((role) => !userRoles.some((userRole) => userRole.id === role.id))
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {userRoles.map((role) => {
-        const cfg = getRoleConfig(role.name)
+        const config = getRoleConfig(role.name)
         return (
           <span
             key={role.id}
             className={cn(
               'group inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold',
-              cfg.pill,
+              config.pill,
             )}
           >
-            {cfg.label}
+            {config.label}
             <button
               onClick={() => removeMutation.mutate(role.id)}
               disabled={removeMutation.isPending}
@@ -201,7 +211,7 @@ function UserRoleCell({ userId, allRoles }: { userId: string; allRoles: AdminRol
       {unassignedRoles.length > 0 && (
         <div ref={dropdownRef} className="relative">
           <button
-            onClick={() => setDropdownOpen((p) => !p)}
+            onClick={() => setDropdownOpen((previous) => !previous)}
             className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
           >
             Add role
@@ -211,7 +221,7 @@ function UserRoleCell({ userId, allRoles }: { userId: string; allRoles: AdminRol
           {dropdownOpen && (
             <div className="absolute left-0 top-full z-20 mt-1 w-56 rounded-xl border border-border bg-popover shadow-lg shadow-black/5">
               {unassignedRoles.map((role) => {
-                const cfg = getRoleConfig(role.name)
+                const config = getRoleConfig(role.name)
                 return (
                   <button
                     key={role.id}
@@ -220,11 +230,11 @@ function UserRoleCell({ userId, allRoles }: { userId: string; allRoles: AdminRol
                     className="flex w-full flex-col px-3 py-2.5 text-left transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-accent"
                   >
                     <div className="flex items-center gap-2">
-                      <span className={cn('rounded-md border px-1.5 py-0.5 text-[10px] font-semibold', cfg.pill)}>
-                        {cfg.label}
+                      <span className={cn('rounded-md border px-1.5 py-0.5 text-[10px] font-semibold', config.pill)}>
+                        {config.label}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">{cfg.description}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">{config.description}</p>
                   </button>
                 )
               })}
@@ -238,14 +248,16 @@ function UserRoleCell({ userId, allRoles }: { userId: string; allRoles: AdminRol
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-
 export default function AdminPage() {
   const queryClient = useQueryClient()
 
   const usersQuery = useQuery({ queryKey: ['admin-users'], queryFn: adminService.getUsers })
   const rolesQuery = useQuery({ queryKey: ['roles'], queryFn: adminService.getRoles })
   const pendingQuery = useQuery({ queryKey: ['pending-onboarding'], queryFn: onboardingService.getPending })
+  const defaultsQuery = useQuery({
+    queryKey: ['department-defaults'],
+    queryFn: adminService.getDepartmentDefaults,
+  })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: Partial<Pick<AdminUser, 'name' | 'isActive'>> }) =>
@@ -253,25 +265,40 @@ export default function AdminPage() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
   })
 
+  const defaultMutation = useMutation({
+    mutationFn: ({ department, userId }: { department: string; userId: string }) =>
+      adminService.setDepartmentDefault(department, userId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['department-defaults'] })
+      void queryClient.invalidateQueries({ queryKey: ['user-directory'] })
+    },
+  })
+
   const users = usersQuery.data ?? []
   const allRoles = rolesQuery.data ?? []
+  const defaultAssignees = defaultsQuery.data ?? []
   const pendingCount = (pendingQuery.data ?? []).length
-  const activeCount = users.filter((u) => u.isActive).length
+  const activeCount = users.filter((user) => user.isActive).length
   const inactiveCount = users.length - activeCount
+
+  const usersByDepartment = DEPARTMENTS.reduce<Record<string, AdminUser[]>>((accumulator, department) => {
+    accumulator[department] = users.filter((user) => user.department === department && user.isActive)
+    return accumulator
+  }, {})
+
+  const defaultByDepartment = new Map(defaultAssignees.map((entry) => [entry.department, entry]))
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h2 className="text-2xl font-semibold text-foreground">Admin</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Manage users, roles, and system access.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Manage users, roles, system access, and request routing defaults.</p>
       </div>
 
-      {/* Pending access requests banner */}
       {pendingCount > 0 && (
         <Link
           to="/access-requests"
-          className="flex items-center justify-between rounded-xl border border-warning/30 bg-warning/5 px-5 py-4 transition-colors hover:bg-warning/10 no-underline"
+          className="flex items-center justify-between rounded-xl border border-warning/30 bg-warning/5 px-5 py-4 no-underline transition-colors hover:bg-warning/10"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning/15 text-warning">
@@ -281,23 +308,69 @@ export default function AdminPage() {
               <p className="text-[13px] font-semibold text-foreground">
                 {pendingCount} pending access {pendingCount === 1 ? 'request' : 'requests'}
               </p>
-              <p className="text-[12px] text-muted-foreground">
-                Review and approve new user applications
-              </p>
+              <p className="text-[12px] text-muted-foreground">Review and approve new user applications</p>
             </div>
           </div>
           <ArrowRight size={15} className="shrink-0 text-muted-foreground" />
         </Link>
       )}
 
-      {/* Stats */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatPill icon={Users} label="Total Users" value={users.length} colorClass="bg-primary/10 text-primary" />
         <StatPill icon={UserCheck} label="Active" value={activeCount} colorClass="bg-green-100 text-green-700" />
         <StatPill icon={UserX} label="Inactive" value={inactiveCount} colorClass="bg-slate-100 text-slate-600" />
       </div>
 
-      {/* User table */}
+      <div className="rounded-xl border border-border bg-card shadow-sm shadow-black/[0.03]">
+        <div className="border-b border-border px-5 py-4">
+          <div className="flex items-center gap-2">
+            <Route size={15} className="text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Department Default Assignees</h3>
+          </div>
+          <p className="mt-1 text-[12px] text-muted-foreground">
+            New requests automatically route to these users when no owner is chosen at creation.
+          </p>
+        </div>
+        <div className="divide-y divide-border">
+          {DEPARTMENTS.map((department) => {
+            const options = usersByDepartment[department] ?? []
+            const currentDefault = defaultByDepartment.get(department)
+            const isUpdating =
+              defaultMutation.isPending && defaultMutation.variables?.department === department
+
+            return (
+              <div key={department} className="grid gap-3 px-5 py-4 md:grid-cols-[220px_minmax(0,1fr)] md:items-center">
+                <div>
+                  <p className="text-[13px] font-semibold text-foreground">{department}</p>
+                  <p className="mt-0.5 text-[12px] text-muted-foreground">
+                    {currentDefault?.user?.name ?? 'No default assignee set'}
+                  </p>
+                </div>
+                <Select
+                  value={currentDefault?.userId ?? 'unassigned'}
+                  onValueChange={(value) => {
+                    if (value === 'unassigned') return
+                    defaultMutation.mutate({ department, userId: value })
+                  }}
+                  disabled={options.length === 0 || isUpdating}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={options.length > 0 ? 'Select default assignee' : 'No active users in department'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {options.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
       {usersQuery.isLoading ? (
         <div className="flex min-h-[260px] items-center justify-center">
           <LoadingSpinner className="h-7 w-7" />
@@ -305,7 +378,9 @@ export default function AdminPage() {
       ) : usersQuery.isError ? (
         <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-6 py-8 text-center">
           <p className="text-sm font-medium text-destructive">Unable to load users</p>
-          <Button variant="outline" size="sm" className="mt-4" onClick={() => void usersQuery.refetch()}>Retry</Button>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => void usersQuery.refetch()}>
+            Retry
+          </Button>
         </div>
       ) : users.length === 0 ? (
         <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
@@ -313,10 +388,9 @@ export default function AdminPage() {
           <p className="mt-3 text-sm font-semibold text-foreground">No users yet</p>
         </div>
       ) : (
-        <div className="rounded-xl border border-border bg-card shadow-sm shadow-black/[0.03] overflow-hidden">
-          {/* Table header */}
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm shadow-black/[0.03]">
           <div className="flex items-center gap-4 border-b border-border bg-muted/30 px-5 py-3">
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">User</span>
             </div>
             <div className="hidden w-20 sm:block">
@@ -336,9 +410,9 @@ export default function AdminPage() {
           <div className="divide-y divide-border">
             {users.map((user) => {
               const isMutating = updateMutation.isPending && updateMutation.variables?.id === user.id
+
               return (
                 <div key={user.id} className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/20">
-                  {/* Avatar + info */}
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <UserInitials name={user.name} />
                     <div className="min-w-0">
@@ -348,31 +422,37 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* Status */}
                   <div className="hidden w-20 sm:block">
-                    <span className={cn(
-                      'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                      user.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
-                    )}>
-                      <span className={cn('h-1.5 w-1.5 rounded-full', user.isActive ? 'bg-green-500' : 'bg-slate-400')} />
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                        user.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'h-1.5 w-1.5 rounded-full',
+                          user.isActive ? 'bg-green-500' : 'bg-slate-400',
+                        )}
+                      />
                       {user.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </div>
 
-                  {/* Roles */}
                   <div className="hidden w-52 md:block">
                     <UserRoleCell userId={user.id} allRoles={allRoles} />
                   </div>
 
-                  {/* Joined */}
                   <div className="hidden w-28 lg:block">
                     <span className="text-[12px] text-muted-foreground">{formatDate(user.createdAt)}</span>
                   </div>
 
-                  {/* Action */}
                   <div className="w-28 text-right">
                     {user.isActive ? (
-                      <Button variant="outline" size="sm" disabled={isMutating}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isMutating}
                         className="h-7 px-3 text-xs text-destructive hover:border-destructive/40 hover:bg-destructive/5 hover:text-destructive"
                         onClick={() => updateMutation.mutate({ id: user.id, patch: { isActive: false } })}
                       >
@@ -380,7 +460,10 @@ export default function AdminPage() {
                         Deactivate
                       </Button>
                     ) : (
-                      <Button variant="outline" size="sm" disabled={isMutating}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isMutating}
                         className="h-7 px-3 text-xs"
                         onClick={() => updateMutation.mutate({ id: user.id, patch: { isActive: true } })}
                       >
@@ -397,7 +480,9 @@ export default function AdminPage() {
           <div className="border-t border-border bg-muted/20 px-5 py-3">
             <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
               <Shield size={12} />
-              <span>{users.length} {users.length === 1 ? 'user' : 'users'} · {activeCount} active</span>
+              <span>
+                {users.length} {users.length === 1 ? 'user' : 'users'} · {activeCount} active
+              </span>
             </div>
           </div>
         </div>

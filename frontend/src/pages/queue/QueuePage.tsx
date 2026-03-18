@@ -4,7 +4,15 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { workflowsService } from '@/services/workflows.service'
+import { usersService } from '@/services/users.service'
 
 function formatMetadata(metadata?: Record<string, unknown>): Array<[string, string]> {
   if (!metadata) return []
@@ -41,11 +49,28 @@ export default function QueuePage() {
     queryFn: workflowsService.getDepartmentQueue,
   })
 
+  const directoryQuery = useQuery({
+    queryKey: ['queue-directory', queueQuery.data?.department],
+    queryFn: () => usersService.getDirectory({ department: queueQuery.data?.department ?? undefined }),
+    enabled: Boolean(queueQuery.data?.department),
+  })
+
   const transitionMutation = useMutation({
     mutationFn: ({ instanceId, actionName }: { instanceId: string; actionName: string }) =>
       workflowsService.transition(instanceId, actionName),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['queue'] })
+    },
+  })
+
+  const reassignMutation = useMutation({
+    mutationFn: ({ instanceId, ownerUserId }: { instanceId: string; ownerUserId: string }) =>
+      workflowsService.updateInstance(instanceId, { ownerUserId }),
+    onSuccess: () => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['queue'] }),
+        queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+      ])
     },
   })
 
@@ -70,6 +95,7 @@ export default function QueuePage() {
 
   const workflows = workflowsQuery.data ?? []
   const { department, instances } = queueQuery.data ?? { department: null, instances: [] }
+  const ownerCandidates = directoryQuery.data ?? []
   const workflowById = Object.fromEntries(workflows.map((workflow) => [workflow.id, workflow]))
 
   return (
@@ -91,7 +117,7 @@ export default function QueuePage() {
             </div>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
               All open requests routed to your department. Review the current owner, keep watcher
-              departments informed, and move work forward in priority order.
+              departments informed, and reassign work when ownership needs to move.
             </p>
           </div>
         </div>
@@ -121,6 +147,8 @@ export default function QueuePage() {
             const metadata = formatMetadata(instance.metadata)
             const availableTransitions =
               workflow?.transitions?.filter((transition) => transition.fromStateId === instance.currentStateId) ?? []
+            const isReassigning =
+              reassignMutation.isPending && reassignMutation.variables?.instanceId === instance.id
 
             return (
               <Card key={instance.id} className="border-border/80">
@@ -136,26 +164,66 @@ export default function QueuePage() {
 
                     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                       <span>{workflow?.name ?? 'Workflow instance'}</span>
-                      {instance.ownerUser?.name && (
+                      {instance.ownerDepartment && (
                         <>
                           <span className="text-border">/</span>
-                          <span className="text-xs font-medium text-foreground/60">Owner: {instance.ownerUser.name}</span>
+                          <span className="text-xs font-medium text-foreground/60">{instance.ownerDepartment}</span>
                         </>
                       )}
                       <span className="text-border">/</span>
                       <span>Created {new Date(instance.createdAt).toLocaleDateString()}</span>
-                      {instance.completedAt && (
-                        <>
-                          <span className="text-border">/</span>
-                          <span className="text-success">
-                            Completed {new Date(instance.completedAt).toLocaleDateString()}
-                          </span>
-                        </>
-                      )}
                     </div>
 
                     {instance.description && (
                       <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{instance.description}</p>
+                    )}
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-[minmax(0,220px)_1fr]">
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        Owner User
+                      </p>
+                      <Select
+                        value={instance.ownerUserId ?? 'unassigned'}
+                        onValueChange={(value) =>
+                          reassignMutation.mutate({
+                            instanceId: instance.id,
+                            ownerUserId: value === 'unassigned' ? '' : value,
+                          })
+                        }
+                        disabled={isReassigning || ownerCandidates.length === 0}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select owner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned">Unassigned</SelectItem>
+                          {ownerCandidates.map((candidate) => (
+                            <SelectItem key={candidate.id} value={candidate.id}>
+                              {candidate.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {instance.watchingDepartments.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                          Watching Departments
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {instance.watchingDepartments.map((departmentName) => (
+                            <div
+                              key={departmentName}
+                              className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground"
+                            >
+                              {departmentName}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -167,19 +235,6 @@ export default function QueuePage() {
                           className="rounded-full border border-border bg-muted/30 px-3 py-1 text-xs text-muted-foreground"
                         >
                           <span className="font-medium text-foreground/70">{formatKey(key)}:</span> {value}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {instance.watchingDepartments.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {instance.watchingDepartments.map((departmentName) => (
-                        <div
-                          key={departmentName}
-                          className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground"
-                        >
-                          Watching: <span className="font-medium text-foreground/70">{departmentName}</span>
                         </div>
                       ))}
                     </div>

@@ -36,6 +36,18 @@ export const workflowsService = {
     return data.data
   },
 
+  async updateInstance(
+    id: string,
+    payload: {
+      ownerUserId?: string
+      ownerDepartment?: string
+      watchingDepartments?: string[]
+    },
+  ): Promise<WorkflowInstance> {
+    const { data } = await apiClient.patch<{ data: WorkflowInstance }>(`/tasks/${id}`, payload)
+    return data.data
+  },
+
   async getDepartmentQueue(): Promise<{ department: string | null; instances: WorkflowInstance[] }> {
     const { data } = await apiClient.get<{ department: string | null; instances: WorkflowInstance[] }>('/queue')
     return data
