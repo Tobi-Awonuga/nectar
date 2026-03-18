@@ -25,12 +25,11 @@ export interface WorkflowCatalogItem {
 export const workflowDepartments = [
   'All Departments',
   'Production',
-  'Shipping',
+  'Shipping / Receiving',
   'Finished Goods',
   'Logistics',
   'Regulatory',
   'ERP / Systems',
-  'Receiving',
   'Warehouse',
   'Inventory Control',
   'QA',
@@ -52,7 +51,7 @@ export const workflowCatalog: WorkflowCatalogItem[] = [
     name: 'Shipping / Label Incident',
     slug: 'shipping-label-incident',
     category: 'Operations Control',
-    departments: ['Production', 'Shipping', 'Finished Goods', 'Logistics', 'Regulatory', 'ERP / Systems'],
+    departments: ['Production', 'Shipping / Receiving', 'Finished Goods', 'Logistics', 'Regulatory', 'ERP / Systems'],
     summary: 'Report label, shipping, and traceability issues before they become dispatch or compliance risks.',
     impact: 'Creates one controlled path for relabels, ERP corrections, and shipment-impacting decisions.',
     outcomes: [
@@ -74,7 +73,7 @@ export const workflowCatalog: WorkflowCatalogItem[] = [
     name: 'Receiving Exception',
     slug: 'receiving-exception',
     category: 'Warehouse Control',
-    departments: ['Receiving', 'Warehouse', 'Inventory Control', 'QA', 'ERP / Systems'],
+    departments: ['Shipping / Receiving', 'Warehouse', 'Inventory Control', 'QA', 'ERP / Systems'],
     summary: 'Capture inbound issues involving ingredients, packaging, lot data, expiry dates, or receiving accuracy.',
     impact: 'Prevents receiving problems from disappearing into informal fixes.',
     outcomes: [
@@ -139,7 +138,7 @@ export const workflowCatalog: WorkflowCatalogItem[] = [
     name: 'Transfer Order Issue',
     slug: 'transfer-order-issue',
     category: 'Warehouse Movement',
-    departments: ['Warehouse', 'Inventory Control', 'Shipping', 'ERP / Systems'],
+    departments: ['Warehouse', 'Inventory Control', 'Shipping / Receiving', 'ERP / Systems'],
     summary: 'Handle transfer mismatches, location errors, and internal movement exceptions.',
     impact: 'Gives transfer issues an owner instead of relying on verbal follow-up.',
     outcomes: [
@@ -183,7 +182,7 @@ export const workflowCatalog: WorkflowCatalogItem[] = [
     name: 'ERP / System Support Request',
     slug: 'erp-system-support-request',
     category: 'Systems Support',
-    departments: ['ERP / Systems', 'Production', 'Warehouse', 'Shipping', 'Inventory Control', 'Analytics', 'Human Resources'],
+    departments: ['ERP / Systems', 'Production', 'Warehouse', 'Shipping / Receiving', 'Inventory Control', 'Analytics', 'Human Resources'],
     summary: 'Route Masterplan support issues, access needs, label system problems, and operational blockers.',
     impact: 'Gives teams one clear path for operational systems support.',
     outcomes: [
@@ -204,7 +203,7 @@ export const workflowCatalog: WorkflowCatalogItem[] = [
     name: 'Quality / Traceability Hold',
     slug: 'quality-traceability-hold',
     category: 'Compliance',
-    departments: ['QA', 'Regulatory', 'Production', 'Inventory Control', 'Shipping'],
+    departments: ['QA', 'Regulatory', 'Production', 'Inventory Control', 'Shipping / Receiving'],
     summary: 'Document lot, expiry, and traceability concerns that require controlled review before release.',
     impact: 'Protects traceability and ensures hold decisions are visible and auditable.',
     outcomes: [

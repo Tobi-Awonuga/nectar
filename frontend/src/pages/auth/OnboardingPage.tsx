@@ -7,12 +7,11 @@ import { cn } from '@/lib/utils'
 
 const DEPARTMENTS = [
   'Production',
-  'Shipping',
+  'Shipping / Receiving',
   'Finished Goods',
   'Logistics',
   'Regulatory',
   'ERP / Systems',
-  'Receiving',
   'Warehouse',
   'Inventory Control',
   'QA',
