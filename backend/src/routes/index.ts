@@ -8,6 +8,7 @@ import notificationsRoutes from './notifications.routes'
 import auditRoutes from './audit.routes'
 import onboardingRoutes from './onboarding.routes'
 import queueRoutes from './queue.routes'
+import departmentDefaultsRoutes from './departmentDefaults.routes'
 
 const router = Router()
 
@@ -20,5 +21,6 @@ router.use('/notifications', notificationsRoutes)
 router.use('/audit', auditRoutes)
 router.use('/onboarding', onboardingRoutes)
 router.use('/queue', queueRoutes)
+router.use('/department-defaults', departmentDefaultsRoutes)
 
 export default router
