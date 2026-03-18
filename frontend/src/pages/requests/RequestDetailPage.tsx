@@ -266,6 +266,7 @@ export default function RequestDetailPage() {
   const queryClient = useQueryClient()
   const [pendingAction, setPendingAction] = useState<string | null>(null)
   const [note, setNote] = useState('')
+  const [commentText, setCommentText] = useState('')
 
   // Transfer ownership state
   const [transferDept, setTransferDept] = useState<string>('')
@@ -293,6 +294,14 @@ export default function RequestDetailPage() {
     queryKey: ['transfer-dir', transferDept],
     queryFn: () => usersService.getDirectory({ department: transferDept }),
     enabled: Boolean(transferDept),
+  })
+
+  const commentMutation = useMutation({
+    mutationFn: (comment: string) => workflowsService.addComment(id!, comment),
+    onSuccess: () => {
+      setCommentText('')
+      void queryClient.invalidateQueries({ queryKey: ['request-events', id] })
+    },
   })
 
   const transitionMutation = useMutation({
@@ -467,6 +476,27 @@ export default function RequestDetailPage() {
               ))}
             </div>
           )}
+
+          {/* Add note */}
+          <div className="mt-5 border-t border-border pt-4 space-y-2">
+            <Textarea
+              placeholder="Leave a note..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              className="min-h-[72px] text-[13px] resize-none"
+            />
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!commentText.trim() || commentMutation.isPending}
+                onClick={() => commentMutation.mutate(commentText.trim())}
+              >
+                {commentMutation.isPending ? <LoadingSpinner className="h-3 w-3 mr-1.5" /> : <MessageSquare size={13} className="mr-1.5" />}
+                Add Note
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Right sidebar */}

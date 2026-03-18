@@ -62,4 +62,8 @@ export const workflowsService = {
     const { data } = await apiClient.post<{ data: WorkflowInstance }>(`/tasks/${instanceId}/transition`, { actionName, comment })
     return data.data
   },
+
+  async addComment(instanceId: string, comment: string): Promise<void> {
+    await apiClient.post(`/tasks/${instanceId}/comment`, { comment })
+  },
 }

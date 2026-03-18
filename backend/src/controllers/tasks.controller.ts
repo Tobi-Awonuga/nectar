@@ -73,6 +73,20 @@ export async function getTaskEvents(req: Request, res: Response, next: NextFunct
   }
 }
 
+export async function addComment(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { comment } = req.body as { comment?: string }
+    if (!comment?.trim()) {
+      res.status(400).json({ error: 'Comment is required' })
+      return
+    }
+    await tasksService.addComment(req.params.id, comment.trim(), req.user?.id ?? '')
+    res.status(204).send()
+  } catch (err) {
+    next(err)
+  }
+}
+
 export async function transitionState(
   req: Request,
   res: Response,

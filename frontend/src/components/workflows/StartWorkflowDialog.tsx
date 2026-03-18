@@ -99,6 +99,7 @@ export function StartWorkflowDialog({
     setFieldValues((current) =>
       Object.fromEntries(blueprint.fields.map((field) => [field.key, current[field.key] ?? ''])),
     )
+    if (workflowName) setTitle(workflowName)
   }, [blueprint.fields, workflowName])
 
   useEffect(() => {

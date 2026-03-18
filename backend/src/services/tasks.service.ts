@@ -5,6 +5,8 @@ import {
   departmentDefaultAssignees,
   instanceAssignments,
   requestParticipants,
+  roles,
+  userRoles,
   users,
   workflowEvents,
   workflowInstances,
@@ -179,19 +181,24 @@ async function replaceWatchingDepartments(
 }
 
 export async function getAll(userId: string, _query: Record<string, unknown>): Promise<WorkflowInstanceRecord[]> {
+  const userRoleRows = await db
+    .select({ roleName: roles.name })
+    .from(userRoles)
+    .innerJoin(roles, eq(roles.id, userRoles.roleId))
+    .where(eq(userRoles.userId, userId))
+
+  const isPrivileged = userRoleRows.some((r) => r.roleName === 'Admin' || r.roleName === 'Manager')
+
   const instances = await db
     .select()
     .from(workflowInstances)
     .where(
-      and(
-        isNull(workflowInstances.deletedAt),
-        or(eq(workflowInstances.createdBy, userId), eq(workflowInstances.assignedTo, userId)),
-        or(
-          eq(workflowInstances.visibility, 'public'),
-          eq(workflowInstances.createdBy, userId),
-          eq(workflowInstances.assignedTo, userId),
-        ),
-      ),
+      isPrivileged
+        ? and(isNull(workflowInstances.deletedAt), eq(workflowInstances.visibility, 'public'))
+        : and(
+            isNull(workflowInstances.deletedAt),
+            or(eq(workflowInstances.createdBy, userId), eq(workflowInstances.assignedTo, userId)),
+          ),
     )
     .orderBy(desc(workflowInstances.createdAt))
 
@@ -538,6 +545,15 @@ export async function getEvents(instanceId: string): Promise<RequestEvent[]> {
       fromUserName,
       toUserName,
     }
+  })
+}
+
+export async function addComment(instanceId: string, comment: string, userId: string): Promise<void> {
+  await db.insert(workflowEvents).values({
+    instanceId,
+    eventType: 'commented',
+    comment,
+    performedBy: userId,
   })
 }
 
