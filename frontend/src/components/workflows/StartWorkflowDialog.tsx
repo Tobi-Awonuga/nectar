@@ -107,7 +107,10 @@ export function StartWorkflowDialog({
     if (field.kind === 'select') {
       return (
         <div key={field.key} className={cn('space-y-2', field.wide && 'md:col-span-2')}>
-          <Label htmlFor={field.key}>{field.label}</Label>
+          <Label htmlFor={field.key}>
+            {field.label}
+            {field.required && <span className="ml-1 text-destructive">*</span>}
+          </Label>
           <Select value={value} onValueChange={(nextValue) => updateFieldValue(field.key, nextValue)}>
             <SelectTrigger id={field.key}>
               <SelectValue placeholder={field.placeholder} />
@@ -124,6 +127,24 @@ export function StartWorkflowDialog({
       )
     }
 
+    if (field.kind === 'date') {
+      return (
+        <div key={field.key} className={cn('space-y-2', field.wide && 'md:col-span-2')}>
+          <Label htmlFor={field.key}>
+            {field.label}
+            {field.required && <span className="ml-1 text-destructive">*</span>}
+          </Label>
+          <Input
+            id={field.key}
+            type="date"
+            value={value}
+            onChange={(e) => updateFieldValue(field.key, e.target.value)}
+            className="block w-full"
+          />
+        </div>
+      )
+    }
+
     const sharedProps = {
       id: field.key,
       placeholder: field.placeholder,
@@ -134,7 +155,10 @@ export function StartWorkflowDialog({
 
     return (
       <div key={field.key} className={cn('space-y-2', field.wide && 'md:col-span-2')}>
-        <Label htmlFor={field.key}>{field.label}</Label>
+        <Label htmlFor={field.key}>
+          {field.label}
+          {field.required && <span className="ml-1 text-destructive">*</span>}
+        </Label>
         {field.kind === 'textarea' ? <Textarea {...sharedProps} /> : <Input {...sharedProps} />}
       </div>
     )
@@ -175,13 +199,13 @@ export function StartWorkflowDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-3xl overflow-hidden p-0">
-        <DialogHeader className="border-b border-border bg-muted/20 px-6 py-5">
-          <DialogTitle>Create New Request</DialogTitle>
+      <DialogContent className="flex flex-col max-h-[92vh] max-w-2xl overflow-hidden p-0 gap-0">
+        <DialogHeader className="shrink-0 border-b border-border px-6 py-5">
+          <DialogTitle className="text-base font-semibold">Create New Request</DialogTitle>
         </DialogHeader>
 
-        <div className="max-h-[calc(90vh-146px)] overflow-y-auto px-6 py-5">
-          <div className="space-y-6">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+          <div className="space-y-5">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="department">Department</Label>
@@ -280,12 +304,12 @@ export function StartWorkflowDialog({
           </div>
         </div>
 
-        <DialogFooter className="border-t border-border bg-background px-6 py-4">
+        <DialogFooter className="shrink-0 border-t border-border bg-muted/20 px-6 py-4 flex flex-row justify-end gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={createMutation.isPending}>
             Cancel
           </Button>
           <Button onClick={submit} disabled={!workflowName || !isWorkflowAvailable || createMutation.isPending}>
-            {createMutation.isPending ? 'Creating...' : 'Submit Request'}
+            {createMutation.isPending ? 'Submitting…' : 'Submit Request'}
           </Button>
         </DialogFooter>
       </DialogContent>

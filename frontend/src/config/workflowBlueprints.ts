@@ -5,7 +5,7 @@ export interface WorkflowBlueprintField {
   label: string
   placeholder: string
   required?: boolean
-  kind?: 'text' | 'textarea' | 'select'
+  kind?: 'text' | 'textarea' | 'select' | 'date'
   options?: string[]
   wide?: boolean
 }
@@ -238,7 +238,7 @@ export const workflowCatalog: WorkflowCatalogItem[] = [
     fields: [
       { key: 'plant', label: 'Plant', placeholder: 'Which plant or office is the employee joining?', required: true, kind: 'select', options: plantOptions },
       { key: 'employeeName', label: 'Employee Name', placeholder: 'Enter the employee name', required: true },
-      { key: 'startDate', label: 'Start Date', placeholder: 'When does the employee start?', required: true },
+      { key: 'startDate', label: 'Start Date', placeholder: 'When does the employee start?', required: true, kind: 'date' },
       { key: 'roleArea', label: 'Role / Department', placeholder: 'What function are they joining?', required: true },
     ],
   },
@@ -259,7 +259,7 @@ export const workflowCatalog: WorkflowCatalogItem[] = [
     fields: [
       { key: 'employeeName', label: 'Employee Name', placeholder: 'Enter the employee name', required: true },
       { key: 'changeType', label: 'Change Type', placeholder: 'Select the change type', required: true, kind: 'select', options: employeeChangeTypes },
-      { key: 'effectiveDate', label: 'Effective Date', placeholder: 'When should the change take effect?', required: true },
+      { key: 'effectiveDate', label: 'Effective Date', placeholder: 'When should the change take effect?', required: true, kind: 'date' },
       { key: 'changeSummary', label: 'Change Summary', placeholder: 'What needs to be updated?', required: true, kind: 'textarea', wide: true },
     ],
   },
