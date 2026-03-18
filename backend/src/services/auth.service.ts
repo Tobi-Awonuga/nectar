@@ -148,12 +148,16 @@ export async function login(idToken: string): Promise<LoginResult> {
   }
 }
 
-export async function getMe(userId: string): Promise<User | null> {
+export async function getMe(userId: string): Promise<(User & { roles: string[] }) | null> {
   const result = await db
     .select()
     .from(users)
     .where(eq(users.id, userId))
     .limit(1)
 
-  return result[0] ?? null
+  const user = result[0]
+  if (!user) return null
+
+  const roleNames = await getUserRoleNames(userId)
+  return { ...user, roles: roleNames }
 }

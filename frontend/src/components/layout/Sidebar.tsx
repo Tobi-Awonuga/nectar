@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { NectarLogo } from '@/components/brand/NectarLogo'
 import { cn } from '@/lib/utils'
+import { useAuthContext } from '@/context/AuthContext'
 
 interface SidebarProps {
   collapsed: boolean
@@ -31,15 +32,26 @@ const navItems: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/inbox', label: 'Inbox', icon: Inbox },
 ]
 
-const systemItems: { to: string; label: string; icon: LucideIcon }[] = [
-  { to: '/audit', label: 'Audit Log', icon: ScrollText },
-  { to: '/access-requests', label: 'Access Requests', icon: UserPlus },
-  { to: '/admin', label: 'Admin', icon: Settings },
+const systemItems: { to: string; label: string; icon: LucideIcon; minRole?: string }[] = [
+  { to: '/audit', label: 'Audit Log', icon: ScrollText, minRole: 'Manager' },
+  { to: '/access-requests', label: 'Access Requests', icon: UserPlus, minRole: 'Admin' },
+  { to: '/admin', label: 'Admin', icon: Settings, minRole: 'Admin' },
 ]
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const [mainOpen, setMainOpen] = useState(true)
   const [systemOpen, setSystemOpen] = useState(true)
+  const { user } = useAuthContext()
+  const userRoles = user?.roles ?? []
+  const isAdmin = userRoles.includes('Admin')
+  const isManager = isAdmin || userRoles.includes('Manager')
+
+  function canSee(minRole?: string) {
+    if (!minRole) return true
+    if (minRole === 'Admin') return isAdmin
+    if (minRole === 'Manager') return isManager
+    return true
+  }
 
   return (
     <aside
@@ -108,7 +120,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             />
           </button>
         )}
-        {(collapsed || systemOpen) && systemItems.map((item) => (
+        {(collapsed || systemOpen) && systemItems.filter((item) => canSee(item.minRole)).map((item) => (
           <SidebarLink key={item.to} collapsed={collapsed} {...item} />
         ))}
       </nav>

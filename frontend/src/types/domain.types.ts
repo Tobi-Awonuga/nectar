@@ -6,6 +6,7 @@ export interface User {
   isActive: boolean
   onboardingStatus?: 'pending_onboarding' | 'pending_approval' | 'approved' | 'rejected'
   department?: string
+  roles?: string[]
   createdAt: string
 }
 

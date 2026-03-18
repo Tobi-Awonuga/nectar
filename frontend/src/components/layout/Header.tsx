@@ -40,6 +40,7 @@ function getInitials(name: string): string {
 
 export function Header({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuthContext()
+  const isAdmin = user?.roles?.includes('Admin') ?? false
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -150,13 +151,15 @@ export function Header({ onMenuClick }: HeaderProps) {
           )}
         </div>
 
-        {/* Settings */}
-        <button
-          onClick={() => navigate('/admin')}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
-          <Settings size={17} />
-        </button>
+        {/* Settings — Admin only */}
+        {isAdmin && (
+          <button
+            onClick={() => navigate('/admin')}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <Settings size={17} />
+          </button>
+        )}
 
         {/* Divider */}
         <div className="mx-2 h-5 w-px bg-border" />
