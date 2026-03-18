@@ -1,13 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Users, UserX, UserCheck, Shield, UserPlus, Check, X, ChevronDown } from 'lucide-react'
+import { Users, UserX, UserCheck, Shield, UserPlus, ChevronDown, X, ArrowRight } from 'lucide-react'
 import { useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Button } from '@/components/ui/button'
 import { adminService, type AdminUser, type AdminRole } from '@/services/admin.service'
 import { onboardingService } from '@/services/onboarding.service'
+import { workflowDepartments } from '@/config/workflowBlueprints'
 import { cn } from '@/lib/utils'
 
-// ── Role styling ─────────────────────────────────────────────────────────────
+const DEPARTMENTS = workflowDepartments.filter((d) => d !== 'All Departments')
+
+// ── Role styling ──────────────────────────────────────────────────────────────
 
 const roleConfig: Record<string, {
   label: string
@@ -44,7 +48,7 @@ function getRoleConfig(name: string) {
   }
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -87,6 +91,62 @@ function StatPill({
   )
 }
 
+// ── Department inline edit ────────────────────────────────────────────────────
+
+function UserDeptCell({ userId, currentDept }: { userId: string; currentDept: string | null }) {
+  const queryClient = useQueryClient()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const updateMutation = useMutation({
+    mutationFn: (department: string) => adminService.updateUser(userId, { department }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      setOpen(false)
+    },
+  })
+
+  return (
+    <div ref={ref} className="relative mt-0.5">
+      <button
+        onClick={() => setOpen((p) => !p)}
+        className={cn(
+          'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors',
+          currentDept
+            ? 'border-border bg-muted/40 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+            : 'border-dashed border-border text-muted-foreground/60 hover:border-primary/40 hover:text-muted-foreground',
+        )}
+      >
+        {currentDept ?? 'Set dept'}
+        <ChevronDown size={9} className={cn('transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-30 mt-1 w-52 rounded-xl border border-border bg-popover shadow-lg shadow-black/5 overflow-hidden">
+          <div className="max-h-56 overflow-y-auto">
+            {DEPARTMENTS.map((dept) => (
+              <button
+                key={dept}
+                onClick={() => updateMutation.mutate(dept)}
+                disabled={updateMutation.isPending}
+                className={cn(
+                  'flex w-full items-center px-3 py-2 text-left text-[12px] transition-colors hover:bg-accent',
+                  dept === currentDept && 'text-primary font-semibold',
+                )}
+              >
+                {dept}
+                {dept === currentDept && <span className="ml-auto text-primary/50 text-[10px]">current</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Role cell ────────────────────────────────────────────────────────────────
+
 function UserRoleCell({ userId, allRoles }: { userId: string; allRoles: AdminRole[] }) {
   const queryClient = useQueryClient()
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -115,7 +175,6 @@ function UserRoleCell({ userId, allRoles }: { userId: string; allRoles: AdminRol
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      {/* Current role pills */}
       {userRoles.map((role) => {
         const cfg = getRoleConfig(role.name)
         return (
@@ -139,7 +198,6 @@ function UserRoleCell({ userId, allRoles }: { userId: string; allRoles: AdminRol
         )
       })}
 
-      {/* Add role dropdown */}
       {unassignedRoles.length > 0 && (
         <div ref={dropdownRef} className="relative">
           <button
@@ -167,11 +225,6 @@ function UserRoleCell({ userId, allRoles }: { userId: string; allRoles: AdminRol
                       </span>
                     </div>
                     <p className="mt-0.5 text-[11px] text-muted-foreground">{cfg.description}</p>
-                    {cfg.permissions.length > 0 && (
-                      <p className="mt-0.5 text-[10px] text-muted-foreground/60">
-                        {cfg.permissions.join(' · ')}
-                      </p>
-                    )}
                   </button>
                 )
               })}
@@ -200,22 +253,9 @@ export default function AdminPage() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
   })
 
-  const approveMutation = useMutation({
-    mutationFn: (userId: string) => onboardingService.approve(userId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['pending-onboarding'] })
-      void queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-    },
-  })
-
-  const rejectMutation = useMutation({
-    mutationFn: (userId: string) => onboardingService.reject(userId),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['pending-onboarding'] }),
-  })
-
   const users = usersQuery.data ?? []
   const allRoles = rolesQuery.data ?? []
-  const pendingUsers = pendingQuery.data ?? []
+  const pendingCount = (pendingQuery.data ?? []).length
   const activeCount = users.filter((u) => u.isActive).length
   const inactiveCount = users.length - activeCount
 
@@ -227,54 +267,27 @@ export default function AdminPage() {
         <p className="mt-1 text-sm text-muted-foreground">Manage users, roles, and system access.</p>
       </div>
 
-      {/* Pending access requests */}
-      {pendingUsers.length > 0 && (
-        <div className="rounded-xl border border-warning/30 bg-warning/5 p-5 space-y-3">
-          <div className="flex items-center gap-2">
-            <UserPlus size={15} className="text-warning" />
-            <h3 className="text-sm font-semibold text-foreground">
-              Pending Access Requests ({pendingUsers.length})
-            </h3>
+      {/* Pending access requests banner */}
+      {pendingCount > 0 && (
+        <Link
+          to="/access-requests"
+          className="flex items-center justify-between rounded-xl border border-warning/30 bg-warning/5 px-5 py-4 transition-colors hover:bg-warning/10 no-underline"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning/15 text-warning">
+              <UserPlus size={15} />
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-foreground">
+                {pendingCount} pending access {pendingCount === 1 ? 'request' : 'requests'}
+              </p>
+              <p className="text-[12px] text-muted-foreground">
+                Review and approve new user applications
+              </p>
+            </div>
           </div>
-          <div className="space-y-2">
-            {pendingUsers.map((item) => {
-              const isApproving = approveMutation.isPending && approveMutation.variables === item.user.id
-              const isRejecting = rejectMutation.isPending && rejectMutation.variables === item.user.id
-              return (
-                <div
-                  key={item.user.id}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3"
-                >
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-semibold text-foreground">{item.user.name}</p>
-                    <p className="text-[12px] text-muted-foreground">
-                      {item.user.email}
-                      {item.user.department ? ` · ${item.user.department}` : ''}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 gap-2">
-                    <Button
-                      size="sm" variant="outline" disabled={isApproving || isRejecting}
-                      className="h-7 gap-1.5 px-3 text-xs border-destructive/30 text-destructive hover:bg-destructive/5"
-                      onClick={() => rejectMutation.mutate(item.user.id)}
-                    >
-                      {isRejecting ? <LoadingSpinner className="h-3 w-3" /> : <X size={12} />}
-                      Reject
-                    </Button>
-                    <Button
-                      size="sm" disabled={isApproving || isRejecting}
-                      className="h-7 gap-1.5 px-3 text-xs"
-                      onClick={() => approveMutation.mutate(item.user.id)}
-                    >
-                      {isApproving ? <LoadingSpinner className="h-3 w-3" /> : <Check size={12} />}
-                      Approve
-                    </Button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+          <ArrowRight size={15} className="shrink-0 text-muted-foreground" />
+        </Link>
       )}
 
       {/* Stats */}
@@ -331,6 +344,7 @@ export default function AdminPage() {
                     <div className="min-w-0">
                       <p className="truncate text-[13px] font-semibold text-foreground">{user.name}</p>
                       <p className="truncate text-[12px] text-muted-foreground">{user.email}</p>
+                      <UserDeptCell userId={user.id} currentDept={user.department} />
                     </div>
                   </div>
 

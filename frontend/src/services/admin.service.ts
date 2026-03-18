@@ -4,6 +4,7 @@ export interface AdminUser {
   id: string
   email: string
   name: string
+  department: string | null
   isActive: boolean
   avatarUrl?: string
   createdAt: string
@@ -22,7 +23,7 @@ export const adminService = {
     return data.data
   },
 
-  async updateUser(id: string, patch: Partial<Pick<AdminUser, 'name' | 'isActive'>>): Promise<AdminUser> {
+  async updateUser(id: string, patch: Partial<Pick<AdminUser, 'name' | 'isActive' | 'department'>>): Promise<AdminUser> {
     const { data } = await apiClient.patch<{ data: AdminUser }>(`/users/${id}`, patch)
     return data.data
   },
