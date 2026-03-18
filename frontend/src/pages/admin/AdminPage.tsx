@@ -277,27 +277,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Role legend */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {Object.values(roleConfig).map((cfg) => (
-          <div key={cfg.label} className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm shadow-black/[0.03]">
-            <div className="flex items-center gap-2">
-              <span className={cn('rounded-md border px-2 py-0.5 text-[11px] font-semibold', cfg.pill)}>
-                {cfg.label}
-              </span>
-            </div>
-            <p className="mt-1.5 text-[12px] text-muted-foreground">{cfg.description}</p>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {cfg.permissions.map((p) => (
-                <span key={p} className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                  {p}
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* Stats */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatPill icon={Users} label="Total Users" value={users.length} colorClass="bg-primary/10 text-primary" />
