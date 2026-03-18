@@ -54,9 +54,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             className="flex items-center gap-2.5 no-underline"
             style={{ textDecoration: 'none' }}
           >
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-accent">
-              <span className="text-xs font-bold text-white">N</span>
-            </div>
+            <NectarLogo size={30} />
             <span className="text-[15px] font-semibold tracking-tight text-white">
               Nectar
             </span>
@@ -64,9 +62,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
         {collapsed && (
           <Link to="/" style={{ textDecoration: 'none' }}>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-accent">
-              <span className="text-xs font-bold text-white">N</span>
-            </div>
+            <NectarLogo size={30} />
           </Link>
         )}
         {!collapsed && (
@@ -128,6 +124,26 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </button>
       )}
     </aside>
+  )
+}
+
+function NectarLogo({ size = 30 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Hexagon */}
+      <path
+        d="M15 2L26.26 8.5V21.5L15 28L3.74 21.5V8.5L15 2Z"
+        fill="hsl(var(--sidebar-accent))"
+      />
+      {/* N lettermark */}
+      <path
+        d="M10 21V9M10 9L20 21M20 21V9"
+        stroke="white"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
 
