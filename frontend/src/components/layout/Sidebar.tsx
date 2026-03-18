@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Link } from 'react-router-dom'
 import {
+  LayoutDashboard,
   GitBranch,
   CheckSquare,
   ShieldCheck,
@@ -18,13 +19,14 @@ interface SidebarProps {
 }
 
 const navItems: { to: string; label: string; icon: LucideIcon }[] = [
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/workflows', label: 'Workflows', icon: GitBranch },
-  { to: '/tasks', label: 'My Tasks', icon: CheckSquare },
+  { to: '/tasks', label: 'My Requests', icon: CheckSquare },
   { to: '/approvals', label: 'Approvals', icon: ShieldCheck },
-  { to: '/audit', label: 'Audit Log', icon: ScrollText },
 ]
 
-const adminItems: { to: string; label: string; icon: LucideIcon }[] = [
+const systemItems: { to: string; label: string; icon: LucideIcon }[] = [
+  { to: '/audit', label: 'Audit Log', icon: ScrollText },
   { to: '/admin', label: 'Admin', icon: Settings },
 ]
 
@@ -110,7 +112,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             />
           </button>
         )}
-        {(collapsed || systemOpen) && adminItems.map((item) => (
+        {(collapsed || systemOpen) && systemItems.map((item) => (
           <SidebarLink key={item.to} collapsed={collapsed} {...item} />
         ))}
       </nav>
