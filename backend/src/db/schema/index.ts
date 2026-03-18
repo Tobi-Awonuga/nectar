@@ -1,4 +1,5 @@
 export * from './users'
+export * from './departmentDefaults'
 export * from './roles'
 export * from './workflows'
 export * from './instances'
