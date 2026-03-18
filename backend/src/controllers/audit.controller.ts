@@ -7,7 +7,6 @@ export async function getAuditEvents(
   next: NextFunction,
 ): Promise<void> {
   try {
-    // TODO: parse query filters (userId, eventType, fromDate, toDate, pagination)
     // and call auditService.getAll with those filters
     const result = await auditService.getAll(req.query as Record<string, unknown>)
     res.status(200).json({ data: result })
@@ -22,7 +21,6 @@ export async function getAuditEventsByInstance(
   next: NextFunction,
 ): Promise<void> {
   try {
-    // TODO: call auditService.getByInstance with req.params.instanceId
     const result = await auditService.getByInstance(req.params.instanceId)
     res.status(200).json({ data: result })
   } catch (err) {
