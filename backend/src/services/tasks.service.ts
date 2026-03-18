@@ -25,15 +25,42 @@ interface CreateTaskInput {
   priority?: 'low' | 'medium' | 'high' | 'critical'
   dueDate?: string
   metadata?: Record<string, unknown>
+  ownerDepartment?: string
+  visibility?: 'public' | 'private'
+  privateRecipientId?: string
 }
 
 export async function getAll(userId: string, _query: Record<string, unknown>): Promise<WorkflowInstance[]> {
+  // Public requests: user created or assigned, excluding private ones not addressed to them
   return db
     .select()
     .from(workflowInstances)
     .where(
       and(
         isNull(workflowInstances.deletedAt),
+        or(
+          eq(workflowInstances.createdBy, userId),
+          eq(workflowInstances.assignedTo, userId),
+        ),
+        // Exclude private requests unless the user is sender or recipient
+        or(
+          eq(workflowInstances.visibility, 'public'),
+          eq(workflowInstances.createdBy, userId),
+          eq(workflowInstances.assignedTo, userId),
+        ),
+      ),
+    )
+    .orderBy(desc(workflowInstances.createdAt))
+}
+
+export async function getPrivate(userId: string): Promise<WorkflowInstance[]> {
+  return db
+    .select()
+    .from(workflowInstances)
+    .where(
+      and(
+        isNull(workflowInstances.deletedAt),
+        eq(workflowInstances.visibility, 'private'),
         or(
           eq(workflowInstances.createdBy, userId),
           eq(workflowInstances.assignedTo, userId),
@@ -85,6 +112,9 @@ export async function create(
     throw createError('Workflow has no states configured', 400)
   }
 
+  const isPrivate = data.visibility === 'private'
+  const assignedTo = isPrivate && data.privateRecipientId ? data.privateRecipientId : createdBy
+
   const [created] = await db
     .insert(workflowInstances)
     .values({
@@ -93,7 +123,9 @@ export async function create(
       description: data.description ?? null,
       currentStateId: initialState.id,
       createdBy,
-      assignedTo: createdBy,
+      assignedTo,
+      ownerDepartment: data.ownerDepartment ?? null,
+      visibility: data.visibility ?? 'public',
       priority: data.priority ?? 'medium',
       dueDate: data.dueDate ? new Date(data.dueDate) : null,
       metadata: data.metadata ?? {},

@@ -2,6 +2,15 @@ import type { Request, Response, NextFunction } from 'express'
 import * as tasksService from '../services/tasks.service'
 import * as workflowsService from '../services/workflows.service'
 
+export async function getPrivateTasks(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await tasksService.getPrivate(req.user?.id ?? '')
+    res.status(200).json({ data: result })
+  } catch (err) {
+    next(err)
+  }
+}
+
 export async function getTasks(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     // TODO: parse pagination/filter params, call tasksService.getAll

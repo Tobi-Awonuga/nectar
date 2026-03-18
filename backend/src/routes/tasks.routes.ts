@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth.middleware'
 import { requirePermission } from '../middleware/rbac.middleware'
 import {
   getTasks,
+  getPrivateTasks,
   createTask,
   getTaskById,
   updateTask,
@@ -15,8 +16,11 @@ const router = Router()
 // All task routes require authentication
 router.use(authenticate)
 
-// GET /api/tasks — list workflow instances (tasks)
+// GET /api/tasks — list public workflow instances
 router.get('/', requirePermission('task:read'), getTasks)
+
+// GET /api/tasks/private — list private requests (only sender/recipient)
+router.get('/private', requirePermission('task:read'), getPrivateTasks)
 
 // POST /api/tasks — create a new workflow instance
 router.post('/', requirePermission('task:update'), createTask)
