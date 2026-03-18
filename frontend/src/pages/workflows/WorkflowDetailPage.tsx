@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   ArrowLeft,
-  ArrowDown,
+  ArrowRight,
   CheckCircle2,
   CircleDot,
   Clock3,
@@ -19,7 +19,6 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getWorkflowBlueprint } from '@/config/workflowBlueprints'
 import { workflowsService } from '@/services/workflows.service'
-import { cn } from '@/lib/utils'
 
 export default function WorkflowDetailPage() {
   const { id = '' } = useParams()
@@ -130,26 +129,16 @@ export default function WorkflowDetailPage() {
             <CardTitle className="text-lg">How This Workflow Works</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-0">
+            <div className="relative pl-6 border-l-2 border-primary/25 space-y-0">
               {states.map((state, index) => {
                 const outgoingTransitions = transitions.filter((t) => t.fromStateId === state.id)
                 const isLast = index === states.length - 1
 
                 return (
-                  <div key={state.id}>
-                    {/* State node */}
-                    <div className={cn(
-                      'flex items-start gap-3 rounded-xl border px-4 py-3.5',
-                      state.isInitial
-                        ? 'border-primary/30 bg-primary/5'
-                        : state.isFinal
-                          ? 'border-success/30 bg-success/5'
-                          : 'border-border bg-muted/20',
-                    )}>
-                      <div className={cn(
-                        'shrink-0 mt-0.5 flex h-7 w-7 items-center justify-center rounded-full',
-                        state.isInitial ? 'bg-primary/15' : state.isFinal ? 'bg-success/15' : 'bg-warning/15',
-                      )}>
+                  <div key={state.id} className={isLast ? 'pb-0' : 'pb-7'}>
+                    <div className="flex items-start gap-3 -ml-[25px]">
+                      {/* State icon node */}
+                      <div className="shrink-0 flex h-[26px] w-[26px] items-center justify-center rounded-full bg-card border-2 border-border shadow-sm">
                         {state.isFinal ? (
                           <CheckCircle2 size={15} className="text-success" />
                         ) : state.isInitial ? (
@@ -158,44 +147,37 @@ export default function WorkflowDetailPage() {
                           <Clock3 size={14} className="text-warning" />
                         )}
                       </div>
-                      <div className="min-w-0 flex-1">
+
+                      <div className="min-w-0 flex-1 pt-0.5">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-sm font-semibold text-foreground">{state.label}</p>
                           {state.isInitial && (
                             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
-                              START
+                              Start
                             </span>
                           )}
                           {state.isFinal && (
-                            <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-success">
-                              END
-                            </span>
+                            <StatusBadge label="End" color={state.color} className="text-[10px]" />
                           )}
                         </div>
+
                         {outgoingTransitions.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1.5">
                             {outgoingTransitions.map((t) => (
-                              <span
+                              <div
                                 key={t.id}
-                                className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                                className="flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-0.5 text-[11px] text-muted-foreground"
                               >
-                                {t.actionLabel}
-                                <span className="text-muted-foreground/40">→</span>
-                                <span className="text-foreground/70">{stateById[t.toStateId]?.label ?? '…'}</span>
-                              </span>
+                                <ArrowRight size={9} className="shrink-0 text-primary/60" />
+                                <span className="font-medium text-foreground/70">{t.actionLabel}</span>
+                                <span className="text-muted-foreground/40">·</span>
+                                <span>{stateById[t.toStateId]?.label ?? '…'}</span>
+                              </div>
                             ))}
                           </div>
                         )}
                       </div>
                     </div>
-
-                    {/* Arrow connector between states */}
-                    {!isLast && (
-                      <div className="flex flex-col items-center py-1">
-                        <div className="h-3 w-px bg-primary/40" />
-                        <ArrowDown size={14} className="text-primary -mt-px" />
-                      </div>
-                    )}
                   </div>
                 )
               })}
