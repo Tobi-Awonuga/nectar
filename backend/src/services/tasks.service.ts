@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, or } from 'drizzle-orm'
 import { db } from '../db'
 import {
+  departmentDefaultAssignees,
   instanceAssignments,
   requestParticipants,
   users,
@@ -11,6 +12,7 @@ import {
 } from '../db/schema'
 import type { WorkflowInstance } from '../db/schema'
 import * as notificationsService from './notifications.service'
+import * as departmentDefaultsService from './departmentDefaults.service'
 
 type AppError = Error & { statusCode?: number }
 
@@ -139,6 +141,12 @@ async function resolveOwner(
     ownerUserId: ownerUser.id,
     ownerDepartment: ownerDepartment ?? ownerUser.department ?? null,
   }
+}
+
+async function resolveDefaultOwner(department: string | null | undefined): Promise<string | null> {
+  if (!department) return null
+  const defaults = await departmentDefaultsService.getDefaultsForDepartments([department])
+  return defaults.get(department) ?? null
 }
 
 async function replaceWatchingDepartments(
@@ -276,9 +284,12 @@ export async function create(
   }
 
   const isPrivate = data.visibility === 'private'
+  const explicitOwner = isPrivate
+    ? data.privateRecipientId ?? null
+    : data.ownerUserId ?? (await resolveDefaultOwner(data.ownerDepartment))
   const resolvedOwner = isPrivate
-    ? { ownerUserId: data.privateRecipientId ?? null, ownerDepartment: null }
-    : await resolveOwner(data.ownerUserId, data.ownerDepartment)
+    ? { ownerUserId: explicitOwner, ownerDepartment: null }
+    : await resolveOwner(explicitOwner, data.ownerDepartment)
 
   const assignedTo = isPrivate
     ? data.privateRecipientId ?? createdBy
@@ -385,6 +396,9 @@ export async function update(
     updatedAt: new Date(),
   }
 
+  const current = await getById(id)
+  if (!current) return null
+
   if (typeof data.title === 'string') updateData.title = data.title.trim()
   if (typeof data.description !== 'undefined') updateData.description = data.description
   if (typeof data.priority !== 'undefined') updateData.priority = data.priority
@@ -406,6 +420,35 @@ export async function update(
     .returning()
 
   if (!updated) return null
+
+  if (typeof data.ownerUserId !== 'undefined' && data.ownerUserId !== current.ownerUserId) {
+    await db.insert(workflowEvents).values({
+      instanceId: updated.id,
+      eventType: 'owner_reassigned',
+      performedBy: actorUserId ?? current.createdBy,
+      metadata: {
+        previousOwnerUserId: current.ownerUserId,
+        nextOwnerUserId: updated.ownerUserId,
+      },
+    })
+
+    if (updated.ownerUserId) {
+      await db.insert(instanceAssignments).values({
+        instanceId: updated.id,
+        userId: updated.ownerUserId,
+        assignedBy: actorUserId ?? current.createdBy,
+      })
+
+      await notificationsService.create({
+        userId: updated.ownerUserId,
+        type: 'task_assigned',
+        title: 'Request reassigned to you',
+        message: `"${updated.title}" now needs your attention.`,
+        entityType: 'workflow_instance',
+        entityId: updated.id,
+      })
+    }
+  }
 
   if (typeof data.watchingDepartments !== 'undefined') {
     await replaceWatchingDepartments(updated.id, data.watchingDepartments, actorUserId ?? updated.createdBy)
