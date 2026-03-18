@@ -56,6 +56,8 @@ export interface WorkflowInstance {
   currentState?: WorkflowState
   createdBy: string
   assignedTo?: string
+  ownerDepartment?: string
+  visibility?: 'public' | 'private'
   priority: 'low' | 'medium' | 'high' | 'critical'
   dueDate?: string
   metadata?: Record<string, unknown>

@@ -138,6 +138,12 @@ export default function TasksPage() {
 
                     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                       <span>{workflow?.name ?? 'Workflow instance'}</span>
+                      {task.ownerDepartment && (
+                        <>
+                          <span className="text-border">/</span>
+                          <span className="text-xs font-medium text-foreground/60">{task.ownerDepartment}</span>
+                        </>
+                      )}
                       <span className="text-border">/</span>
                       <span>Created {new Date(task.createdAt).toLocaleDateString()}</span>
                       {task.completedAt ? (

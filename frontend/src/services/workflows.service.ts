@@ -27,6 +27,7 @@ export const workflowsService = {
     title: string
     description?: string
     priority?: string
+    ownerDepartment?: string
     metadata?: Record<string, string>
   }): Promise<WorkflowInstance> {
     const { data } = await apiClient.post<{ data: WorkflowInstance }>('/tasks', payload)

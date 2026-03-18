@@ -186,11 +186,16 @@ export function StartWorkflowDialog({
     }
 
     setFormError(null)
+    // Derive ownerDepartment: prefer the explicit department filter if set, else blueprint's first department
+    const ownerDepartment =
+      department !== 'All Departments' ? department : (blueprint.departments[0] ?? undefined)
+
     createMutation.mutate({
       workflowId: selectedWorkflow.id,
       title: title.trim(),
       description: description.trim() ? description.trim() : undefined,
       priority,
+      ownerDepartment,
       metadata: Object.fromEntries(
         Object.entries(fieldValues).filter(([, value]) => value.trim().length > 0),
       ),
