@@ -2,6 +2,7 @@ import { and, asc, desc, eq, isNull, or } from 'drizzle-orm'
 import { db } from '../db'
 import {
   instanceAssignments,
+  users,
   workflowEvents,
   workflowInstances,
   workflows,
@@ -51,6 +52,33 @@ export async function getAll(userId: string, _query: Record<string, unknown>): P
       ),
     )
     .orderBy(desc(workflowInstances.createdAt))
+}
+
+export async function getDepartmentQueue(
+  userId: string,
+): Promise<{ department: string | null; instances: WorkflowInstance[] }> {
+  const [user] = await db
+    .select({ department: users.department })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+
+  const department = user?.department ?? null
+  if (!department) return { department: null, instances: [] }
+
+  const instances = await db
+    .select()
+    .from(workflowInstances)
+    .where(
+      and(
+        isNull(workflowInstances.deletedAt),
+        eq(workflowInstances.ownerDepartment, department),
+        eq(workflowInstances.visibility, 'public'),
+      ),
+    )
+    .orderBy(desc(workflowInstances.createdAt))
+
+  return { department, instances }
 }
 
 export async function getPrivate(userId: string): Promise<WorkflowInstance[]> {

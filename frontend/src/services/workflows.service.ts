@@ -34,6 +34,11 @@ export const workflowsService = {
     return data.data
   },
 
+  async getDepartmentQueue(): Promise<{ department: string | null; instances: WorkflowInstance[] }> {
+    const { data } = await apiClient.get<{ department: string | null; instances: WorkflowInstance[] }>('/queue')
+    return data
+  },
+
   async transition(instanceId: string, actionName: string, comment?: string): Promise<WorkflowInstance> {
     const { data } = await apiClient.post<{ data: WorkflowInstance }>(`/tasks/${instanceId}/transition`, { actionName, comment })
     return data.data
