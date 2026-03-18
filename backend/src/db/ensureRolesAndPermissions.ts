@@ -1,10 +1,11 @@
 /**
  * Ensures roles, permissions, and their mappings are present in the DB.
+ * Also ensures at least one Admin user exists.
  * Runs on every server startup — idempotent, safe to call multiple times.
  */
-import { eq, inArray } from 'drizzle-orm'
+import { asc, eq, inArray, isNull, ne, and } from 'drizzle-orm'
 import { db } from './index'
-import { roles, permissions, rolePermissions } from './schema'
+import { roles, permissions, rolePermissions, users, userRoles } from './schema'
 
 const ROLE_DEFINITIONS = [
   { name: 'Admin', description: 'Full platform access' },
@@ -94,4 +95,41 @@ export async function ensureRolesAndPermissions(): Promise<void> {
         .where(inArray(rolePermissions.permissionId, staleIds))
     }
   }
+}
+
+/**
+ * If no user has Admin role yet, promote the earliest created non-system user.
+ * This auto-bootstraps the first admin on a fresh install.
+ */
+export async function ensureAtLeastOneAdmin(): Promise<void> {
+  const [adminRole] = await db.select().from(roles).where(eq(roles.name, 'Admin')).limit(1)
+  if (!adminRole) return
+
+  const [existingAdmin] = await db
+    .select()
+    .from(userRoles)
+    .where(eq(userRoles.roleId, adminRole.id))
+    .limit(1)
+
+  if (existingAdmin) return // at least one admin already exists
+
+  // No admin — promote the earliest real user
+  const [firstUser] = await db
+    .select()
+    .from(users)
+    .where(and(ne(users.email, 'system@nectar.local'), isNull(users.deletedAt)))
+    .orderBy(asc(users.createdAt))
+    .limit(1)
+
+  if (!firstUser) return
+
+  await db.insert(userRoles).values({ userId: firstUser.id, roleId: adminRole.id }).onConflictDoNothing()
+
+  // Also ensure the user is marked active and approved
+  await db
+    .update(users)
+    .set({ isActive: true, onboardingStatus: 'approved' })
+    .where(eq(users.id, firstUser.id))
+
+  console.log(`Auto-promoted first user to Admin: ${firstUser.name} (${firstUser.email})`)
 }
