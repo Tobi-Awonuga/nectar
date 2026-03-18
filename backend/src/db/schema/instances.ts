@@ -18,6 +18,10 @@ export const workflowInstances = pgTable('workflow_instances', {
     .references(() => users.id),
   // Current responsible party — updated as state changes
   assignedTo: uuid('assigned_to').references(() => users.id),
+  // Department that owns this request (routes to their queue)
+  ownerDepartment: varchar('owner_department', { length: 100 }),
+  // 'public' | 'private' — private requests are only visible to sender and recipient
+  visibility: varchar('visibility', { length: 20 }).default('public').notNull(),
   // 'low' | 'medium' | 'high' | 'critical'
   priority: varchar('priority', { length: 50 }).default('medium').notNull(),
   dueDate: timestamp('due_date', { withTimezone: true }),
