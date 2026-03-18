@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   ScrollText,
   Settings,
+  Inbox,
   ChevronLeft,
   ChevronDown,
   type LucideIcon,
@@ -23,6 +24,7 @@ const navItems: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/workflows', label: 'Workflows', icon: GitBranch },
   { to: '/tasks', label: 'My Requests', icon: CheckSquare },
   { to: '/approvals', label: 'Approvals', icon: ShieldCheck },
+  { to: '/inbox', label: 'Inbox', icon: Inbox },
 ]
 
 const systemItems: { to: string; label: string; icon: LucideIcon }[] = [

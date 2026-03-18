@@ -11,6 +11,7 @@ import TasksPage from './pages/tasks/TasksPage'
 import ApprovalsPage from './pages/approvals/ApprovalsPage'
 import AuditLogPage from './pages/audit/AuditLogPage'
 import AdminPage from './pages/admin/AdminPage'
+import InboxPage from './pages/inbox/InboxPage'
 
 export const router = createBrowserRouter([
   {
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
           { path: '/approvals', element: <ApprovalsPage /> },
           { path: '/audit', element: <AuditLogPage /> },
           { path: '/admin', element: <AdminPage /> },
+          { path: '/inbox', element: <InboxPage /> },
         ],
       },
     ],
