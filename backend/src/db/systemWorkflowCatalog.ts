@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull, inArray } from 'drizzle-orm'
 import { db } from './index'
 import {
   roles,
@@ -42,6 +42,7 @@ const reviewStates: WorkflowStateDefinition[] = [
 ]
 
 const reviewTransitions: WorkflowTransitionDefinition[] = [
+  // ── Forward ────────────────────────────────────────────────────────────────
   {
     actionName: 'review',
     actionLabel: 'Start Review',
@@ -68,6 +69,28 @@ const reviewTransitions: WorkflowTransitionDefinition[] = [
     actionLabel: 'Close',
     fromState: 'resolved',
     toState: 'closed',
+    allowedRoleNames: ['Admin', 'Manager'],
+  },
+  // ── Backward ───────────────────────────────────────────────────────────────
+  {
+    actionName: 'return_to_reported',
+    actionLabel: 'Return to Reported',
+    fromState: 'under_review',
+    toState: 'reported',
+    allowedRoleNames: ['Admin', 'Manager'],
+  },
+  {
+    actionName: 'return_to_review',
+    actionLabel: 'Return to Review',
+    fromState: 'action_required',
+    toState: 'under_review',
+    allowedRoleNames: ['Admin', 'Manager'],
+  },
+  {
+    actionName: 'reopen',
+    actionLabel: 'Reopen',
+    fromState: 'resolved',
+    toState: 'action_required',
     allowedRoleNames: ['Admin', 'Manager'],
   },
 ]
@@ -193,35 +216,42 @@ export async function ensureSystemWorkflowCatalog(): Promise<void> {
 
     const stateByName = new Map(states.map((state) => [state.name, state.id]))
 
-    const transitions = await db
-      .select()
-      .from(workflowTransitions)
-      .where(eq(workflowTransitions.workflowId, workflow.id))
+    // Upsert each transition individually so new transitions are added to existing workflows
+    for (const transition of definition.transitions) {
+      const fromStateId = stateByName.get(transition.fromState)
+      const toStateId = stateByName.get(transition.toState)
+      if (!fromStateId || !toStateId) continue
 
-    if (transitions.length === 0) {
-      for (const transition of definition.transitions) {
-        const [createdTransition] = await db
+      const [existing] = await db
+        .select({ id: workflowTransitions.id })
+        .from(workflowTransitions)
+        .where(
+          and(
+            eq(workflowTransitions.workflowId, workflow.id),
+            eq(workflowTransitions.actionName, transition.actionName),
+            eq(workflowTransitions.fromStateId, fromStateId),
+          ),
+        )
+        .limit(1)
+
+      const transitionId = existing?.id ?? (
+        await db
           .insert(workflowTransitions)
-          .values({
-            workflowId: workflow.id,
-            fromStateId: stateByName.get(transition.fromState)!,
-            toStateId: stateByName.get(transition.toState)!,
-            actionName: transition.actionName,
-            actionLabel: transition.actionLabel,
-          })
+          .values({ workflowId: workflow.id, fromStateId, toStateId, actionName: transition.actionName, actionLabel: transition.actionLabel })
           .returning()
+          .then(([t]) => t.id)
+      )
 
-        for (const roleName of transition.allowedRoleNames) {
-          const roleId = roleByName.get(roleName)
-          if (!roleId) continue
-
-          await db
-            .insert(transitionAllowedRoles)
-            .values({
-              transitionId: createdTransition.id,
-              roleId,
-            })
-            .onConflictDoNothing()
+      const roleIds = transition.allowedRoleNames.map((n) => roleByName.get(n)).filter(Boolean) as string[]
+      if (roleIds.length > 0) {
+        const existingRoles = await db
+          .select({ roleId: transitionAllowedRoles.roleId })
+          .from(transitionAllowedRoles)
+          .where(and(eq(transitionAllowedRoles.transitionId, transitionId), inArray(transitionAllowedRoles.roleId, roleIds)))
+        const existingRoleSet = new Set(existingRoles.map((r) => r.roleId))
+        const missingRoleIds = roleIds.filter((id) => !existingRoleSet.has(id))
+        for (const roleId of missingRoleIds) {
+          await db.insert(transitionAllowedRoles).values({ transitionId, roleId }).onConflictDoNothing()
         }
       }
     }

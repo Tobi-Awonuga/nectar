@@ -1,3 +1,4 @@
+import { alias } from 'drizzle-orm/pg-core'
 import { and, asc, desc, eq, inArray, isNull, or } from 'drizzle-orm'
 import { db } from '../db'
 import {
@@ -25,6 +26,7 @@ interface RequestUser {
 
 export interface WorkflowInstanceRecord extends WorkflowInstance {
   ownerUser?: RequestUser | null
+  submittedByUser?: { id: string; name: string } | null
   watchingDepartments: string[]
 }
 
@@ -62,18 +64,15 @@ async function attachRequestRelations(instances: WorkflowInstance[]): Promise<Wo
 
   const instanceIds = instances.map((instance) => instance.id)
   const ownerUserIds = [...new Set(instances.map((instance) => instance.ownerUserId).filter(Boolean))] as string[]
+  const submitterIds = [...new Set(instances.map((instance) => instance.createdBy).filter(Boolean))] as string[]
+  const allUserIds = [...new Set([...ownerUserIds, ...submitterIds])]
 
-  const [ownerUsers, participants] = await Promise.all([
-    ownerUserIds.length > 0
+  const [allUsers, participants] = await Promise.all([
+    allUserIds.length > 0
       ? db
-          .select({
-            id: users.id,
-            name: users.name,
-            email: users.email,
-            department: users.department,
-          })
+          .select({ id: users.id, name: users.name, email: users.email, department: users.department })
           .from(users)
-          .where(inArray(users.id, ownerUserIds))
+          .where(inArray(users.id, allUserIds))
       : Promise.resolve([]),
     db
       .select({
@@ -86,7 +85,7 @@ async function attachRequestRelations(instances: WorkflowInstance[]): Promise<Wo
       .where(inArray(requestParticipants.instanceId, instanceIds)),
   ])
 
-  const ownerUserById = new Map(ownerUsers.map((user) => [user.id, user]))
+  const userById = new Map(allUsers.map((user) => [user.id, user]))
   const watchingDepartmentsByInstance = new Map<string, string[]>()
 
   for (const participant of participants) {
@@ -105,7 +104,8 @@ async function attachRequestRelations(instances: WorkflowInstance[]): Promise<Wo
 
   return instances.map((instance) => ({
     ...instance,
-    ownerUser: instance.ownerUserId ? (ownerUserById.get(instance.ownerUserId) ?? null) : null,
+    ownerUser: instance.ownerUserId ? (userById.get(instance.ownerUserId) ?? null) : null,
+    submittedByUser: instance.createdBy ? (userById.get(instance.createdBy) ?? null) : null,
     watchingDepartments: watchingDepartmentsByInstance.get(instance.id) ?? [],
   }))
 }
@@ -456,6 +456,89 @@ export async function update(
 
   const [record] = await attachRequestRelations([updated])
   return record ?? null
+}
+
+export interface RequestEvent {
+  id: string
+  eventType: string
+  comment: string | null
+  metadata: unknown
+  createdAt: string
+  performedBy: { id: string; name: string }
+  fromStateName: string | null
+  toStateName: string | null
+  fromUserName: string | null
+  toUserName: string | null
+}
+
+export async function getEvents(instanceId: string): Promise<RequestEvent[]> {
+  const fromState = alias(workflowStates, 'from_state')
+  const toState = alias(workflowStates, 'to_state')
+  const performer = alias(users, 'performer')
+
+  const rows = await db
+    .select({
+      id: workflowEvents.id,
+      eventType: workflowEvents.eventType,
+      comment: workflowEvents.comment,
+      metadata: workflowEvents.metadata,
+      createdAt: workflowEvents.createdAt,
+      performedById: performer.id,
+      performedByName: performer.name,
+      fromStateName: fromState.label,
+      toStateName: toState.label,
+    })
+    .from(workflowEvents)
+    .innerJoin(performer, eq(performer.id, workflowEvents.performedBy))
+    .leftJoin(fromState, eq(fromState.id, workflowEvents.fromStateId))
+    .leftJoin(toState, eq(toState.id, workflowEvents.toStateId))
+    .where(eq(workflowEvents.instanceId, instanceId))
+    .orderBy(asc(workflowEvents.createdAt))
+
+  // Resolve user IDs from owner_reassigned metadata
+  const ownerUserIds = new Set<string>()
+  for (const row of rows) {
+    if (row.eventType === 'owner_reassigned' && row.metadata && typeof row.metadata === 'object') {
+      const meta = row.metadata as Record<string, unknown>
+      if (typeof meta.previousOwnerUserId === 'string') ownerUserIds.add(meta.previousOwnerUserId)
+      if (typeof meta.nextOwnerUserId === 'string') ownerUserIds.add(meta.nextOwnerUserId)
+    }
+  }
+
+  const ownerUserMap = new Map<string, string>()
+  if (ownerUserIds.size > 0) {
+    const resolved = await db
+      .select({ id: users.id, name: users.name })
+      .from(users)
+      .where(inArray(users.id, [...ownerUserIds]))
+    for (const u of resolved) ownerUserMap.set(u.id, u.name)
+  }
+
+  return rows.map((row) => {
+    let fromUserName: string | null = null
+    let toUserName: string | null = null
+    if (row.eventType === 'owner_reassigned' && row.metadata && typeof row.metadata === 'object') {
+      const meta = row.metadata as Record<string, unknown>
+      fromUserName = typeof meta.previousOwnerUserId === 'string'
+        ? (ownerUserMap.get(meta.previousOwnerUserId) ?? 'Unassigned')
+        : 'Unassigned'
+      toUserName = typeof meta.nextOwnerUserId === 'string'
+        ? (ownerUserMap.get(meta.nextOwnerUserId) ?? 'Unassigned')
+        : 'Unassigned'
+    }
+    return {
+      id: row.id,
+      eventType: row.eventType,
+      comment: row.comment,
+      metadata: row.metadata,
+      createdAt: row.createdAt.toISOString(),
+      performedBy: { id: row.performedById, name: row.performedByName },
+      fromStateName: row.fromStateName ?? null,
+      toStateName: row.toStateName ?? null,
+      fromUserName,
+      toUserName,
+    }
+  })
 }
 
 export async function remove(id: string): Promise<void> {

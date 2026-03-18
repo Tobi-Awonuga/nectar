@@ -8,6 +8,7 @@ export interface PendingApproval {
   currentStateId: string
   currentState: { id: string; label: string; color: string | null } | null
   createdBy: string
+  createdByUser: { id: string; name: string } | null
   assignedTo?: string
   priority: string
   metadata?: Record<string, unknown>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ShieldCheck, Clock, Check, X, ChevronRight } from 'lucide-react'
+import { ShieldCheck, Clock, Check, X, ChevronRight, ArrowUpRight } from 'lucide-react'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
@@ -166,9 +167,16 @@ export default function ApprovalsPage() {
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-[15px] font-semibold text-foreground leading-snug">
-                      {item.title}
-                    </h3>
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-[15px] font-semibold text-foreground leading-snug">{item.title}</h3>
+                      <Link
+                        to={`/requests/${item.id}`}
+                        className="flex shrink-0 items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[12px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      >
+                        <ArrowUpRight size={12} />
+                        View
+                      </Link>
+                    </div>
 
                     {/* Current state + meta */}
                     <div className="flex flex-wrap items-center gap-2">
@@ -192,7 +200,7 @@ export default function ApprovalsPage() {
                     <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
                       <Clock size={11} className="shrink-0" />
                       <span>
-                        Submitted by <span className="font-medium text-foreground">{item.createdBy}</span>
+                        Submitted by <span className="font-medium text-foreground">{item.createdByUser?.name ?? item.createdBy}</span>
                       </span>
                       <ChevronRight size={10} className="text-muted-foreground/40" />
                       <span>{formatRelativeDate(item.createdAt)}</span>

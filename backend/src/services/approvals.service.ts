@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { db } from '../db'
-import { transitionAllowedRoles, userRoles, workflowInstances, workflowStates, workflowTransitions } from '../db/schema'
+import { transitionAllowedRoles, userRoles, users, workflowInstances, workflowStates, workflowTransitions } from '../db/schema'
 import type { WorkflowInstance } from '../db/schema'
 import * as workflowsService from './workflows.service'
 
@@ -10,6 +10,7 @@ export interface ApprovalActionOptions {
 
 export interface PendingApproval extends WorkflowInstance {
   currentState: { id: string; label: string; color: string | null } | null
+  createdByUser: { id: string; name: string } | null
 }
 
 export async function getPending(userId: string): Promise<PendingApproval[]> {
@@ -48,18 +49,27 @@ export async function getPending(userId: string): Promise<PendingApproval[]> {
 
   if (instances.length === 0) return []
 
-  const result: PendingApproval[] = []
-  for (const instance of instances) {
-    const [state] = await db
-      .select({ id: workflowStates.id, label: workflowStates.label, color: workflowStates.color })
+  // Batch-load states and submitter names
+  const stateIds = [...new Set(instances.map((i) => i.currentStateId))]
+  const creatorIds = [...new Set(instances.map((i) => i.createdBy).filter(Boolean))] as string[]
+
+  const [stateRows, creatorRows] = await Promise.all([
+    db.select({ id: workflowStates.id, label: workflowStates.label, color: workflowStates.color })
       .from(workflowStates)
-      .where(eq(workflowStates.id, instance.currentStateId))
-      .limit(1)
+      .where(inArray(workflowStates.id, stateIds)),
+    creatorIds.length > 0
+      ? db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, creatorIds))
+      : Promise.resolve([]),
+  ])
 
-    result.push({ ...instance, currentState: state ?? null })
-  }
+  const stateMap = Object.fromEntries(stateRows.map((s) => [s.id, s]))
+  const creatorMap = Object.fromEntries(creatorRows.map((u) => [u.id, u]))
 
-  return result
+  return instances.map((instance) => ({
+    ...instance,
+    currentState: stateMap[instance.currentStateId] ?? null,
+    createdByUser: instance.createdBy ? (creatorMap[instance.createdBy] ?? null) : null,
+  }))
 }
 
 export async function approve(

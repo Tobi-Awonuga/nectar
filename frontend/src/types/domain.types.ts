@@ -62,6 +62,7 @@ export interface WorkflowInstance {
   currentStateId: string
   currentState?: WorkflowState
   createdBy: string
+  submittedByUser?: { id: string; name: string } | null
   assignedTo?: string
   ownerDepartment?: string
   ownerUserId?: string
@@ -85,6 +86,19 @@ export interface WorkflowEvent {
   performedBy: string
   comment?: string
   createdAt: string
+}
+
+export interface RequestEvent {
+  id: string
+  eventType: string
+  comment: string | null
+  metadata?: Record<string, unknown> | null
+  createdAt: string
+  performedBy: { id: string; name: string }
+  fromStateName: string | null
+  toStateName: string | null
+  fromUserName: string | null
+  toUserName: string | null
 }
 
 export interface Notification {

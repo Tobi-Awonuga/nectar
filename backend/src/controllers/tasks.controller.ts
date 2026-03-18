@@ -64,6 +64,15 @@ export async function deleteTask(req: Request, res: Response, next: NextFunction
   }
 }
 
+export async function getTaskEvents(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await tasksService.getEvents(req.params.id)
+    res.status(200).json({ data: result })
+  } catch (err) {
+    next(err)
+  }
+}
+
 export async function transitionState(
   req: Request,
   res: Response,

@@ -1,5 +1,5 @@
 import { apiClient } from './api.client'
-import type { Workflow, WorkflowInstance } from '../types/domain.types'
+import type { Workflow, WorkflowInstance, RequestEvent } from '../types/domain.types'
 
 export const workflowsService = {
   async getWorkflows(): Promise<Workflow[]> {
@@ -45,6 +45,11 @@ export const workflowsService = {
     },
   ): Promise<WorkflowInstance> {
     const { data } = await apiClient.patch<{ data: WorkflowInstance }>(`/tasks/${id}`, payload)
+    return data.data
+  },
+
+  async getInstanceEvents(id: string): Promise<RequestEvent[]> {
+    const { data } = await apiClient.get<{ data: RequestEvent[] }>(`/tasks/${id}/events`)
     return data.data
   },
 

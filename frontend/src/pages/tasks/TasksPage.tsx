@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ClipboardList, Plus, ChevronRight } from 'lucide-react'
+import { ClipboardList, Plus, ChevronRight, ArrowUpRight } from 'lucide-react'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { StartWorkflowDialog } from '@/components/workflows/StartWorkflowDialog'
@@ -130,6 +131,13 @@ export default function TasksPage() {
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-lg font-semibold text-foreground">{task.title}</p>
+                      <Link
+                        to={`/requests/${task.id}`}
+                        className="ml-auto flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[12px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      >
+                        <ArrowUpRight size={12} />
+                        View
+                      </Link>
                       {currentState ? (
                         <StatusBadge label={currentState.label} color={currentState.color} className="text-[11px]" />
                       ) : null}

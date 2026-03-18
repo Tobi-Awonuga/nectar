@@ -6,6 +6,7 @@ import {
   getPrivateTasks,
   createTask,
   getTaskById,
+  getTaskEvents,
   updateTask,
   deleteTask,
   transitionState,
@@ -27,6 +28,9 @@ router.post('/', requirePermission('task:update'), createTask)
 
 // GET /api/tasks/:id — get a task by ID
 router.get('/:id', requirePermission('task:read'), getTaskById)
+
+// GET /api/tasks/:id/events — full audit trail for a request
+router.get('/:id/events', requirePermission('task:read'), getTaskEvents)
 
 // PATCH /api/tasks/:id — update task metadata
 router.patch('/:id', requirePermission('task:update'), updateTask)

@@ -1,5 +1,6 @@
+import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Layers, ChevronRight, Building2 } from 'lucide-react'
+import { Layers, ChevronRight, Building2, ArrowUpRight } from 'lucide-react'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
@@ -156,6 +157,13 @@ export default function QueuePage() {
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-lg font-semibold text-foreground">{instance.title}</p>
+                      <Link
+                        to={`/requests/${instance.id}`}
+                        className="ml-auto flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[12px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      >
+                        <ArrowUpRight size={12} />
+                        View
+                      </Link>
                       {currentState && (
                         <StatusBadge label={currentState.label} color={currentState.color} className="text-[11px]" />
                       )}
