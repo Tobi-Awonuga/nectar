@@ -7,6 +7,7 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import path from 'path'
 import { env } from './config/env'
 import { db, pool } from './db'
+import { ensureRolesAndPermissions } from './db/ensureRolesAndPermissions'
 import { ensureSystemWorkflowCatalog } from './db/systemWorkflowCatalog'
 import router from './routes'
 import { errorHandler } from './middleware/error.middleware'
@@ -37,6 +38,10 @@ async function bootstrap() {
     migrationsFolder: path.join(__dirname, 'db', 'migrations'),
   })
   console.log('Migrations complete.')
+
+  console.log('Ensuring roles and permissions...')
+  await ensureRolesAndPermissions()
+  console.log('Roles and permissions ready.')
 
   console.log('Ensuring system workflow catalog...')
   await ensureSystemWorkflowCatalog()
