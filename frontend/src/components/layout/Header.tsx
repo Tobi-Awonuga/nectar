@@ -20,6 +20,7 @@ const pageTitles: Record<string, string> = {
   '/access-requests': 'Access Requests',
   '/audit': 'Audit Log',
   '/admin': 'Admin',
+  '/dept-defaults': 'Department Routing',
 }
 
 function getPageTitle(pathname: string): string {

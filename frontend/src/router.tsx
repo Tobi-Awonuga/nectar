@@ -15,6 +15,7 @@ import QueuePage from './pages/queue/QueuePage'
 import AccessRequestsPage from './pages/access-requests/AccessRequestsPage'
 import InboxPage from './pages/inbox/InboxPage'
 import RequestDetailPage from './pages/requests/RequestDetailPage'
+import DeptDefaultsPage from './pages/dept-defaults/DeptDefaultsPage'
 
 export const router = createBrowserRouter([
   {
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
           { path: '/access-requests', element: <AccessRequestsPage /> },
           { path: '/inbox', element: <InboxPage /> },
           { path: '/requests/:id', element: <RequestDetailPage /> },
+          { path: '/dept-defaults', element: <DeptDefaultsPage /> },
         ],
       },
     ],

@@ -463,22 +463,34 @@ export default function RequestDetailPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
 
         {/* Left: Activity */}
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm shadow-black/[0.03]">
-          <h2 className="mb-5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Activity
-          </h2>
-          {events.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No activity yet.</p>
-          ) : (
-            <div>
-              {events.map((event, i) => (
-                <EventEntry key={event.id} event={event} isLast={i === events.length - 1} />
-              ))}
-            </div>
-          )}
+        <div className="rounded-xl border border-border bg-card shadow-sm shadow-black/[0.03] flex flex-col overflow-hidden">
+          {/* Section header */}
+          <div className="px-6 pt-5 pb-4 border-b border-border shrink-0">
+            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Activity
+              {events.length > 0 && (
+                <span className="ml-2 font-normal normal-case tracking-normal text-muted-foreground/60">
+                  · {events.length} {events.length === 1 ? 'event' : 'events'}
+                </span>
+              )}
+            </h2>
+          </div>
 
-          {/* Add note */}
-          <div className="mt-5 border-t border-border pt-4 space-y-2">
+          {/* Scrollable event list — capped so the Add Note box stays in view */}
+          <div className="overflow-y-auto max-h-[460px] px-6 py-5">
+            {events.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No activity yet.</p>
+            ) : (
+              <div>
+                {events.map((event, i) => (
+                  <EventEntry key={event.id} event={event} isLast={i === events.length - 1} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Add note — always visible, outside the scroll region */}
+          <div className="border-t border-border px-6 py-4 space-y-2 shrink-0">
             <Textarea
               placeholder="Leave a note..."
               value={commentText}

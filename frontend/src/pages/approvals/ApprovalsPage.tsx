@@ -32,6 +32,10 @@ const priorityConfig: Record<string, { label: string; className: string }> = {
   low:      { label: 'Low',      className: 'bg-slate-50 text-slate-600 border border-slate-200' },
 }
 
+function formatKey(key: string): string {
+  return key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase()).trim()
+}
+
 function formatRelativeDate(iso: string) {
   const date = new Date(iso)
   const now = new Date()
@@ -92,7 +96,14 @@ export default function ApprovalsPage() {
     <div className="space-y-6">
       {/* Page header */}
       <div>
-        <h2 className="text-2xl font-semibold text-foreground">Approvals</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-2xl font-semibold text-foreground">Approvals</h2>
+          {!isLoading && approvals.length > 0 && (
+            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
+              {approvals.length}
+            </span>
+          )}
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Review and action pending requests waiting for your decision.
         </p>
@@ -191,7 +202,7 @@ export default function ApprovalsPage() {
                           key={key}
                           className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground"
                         >
-                          {key}: {String(val)}
+                          {formatKey(key)}: {String(val)}
                         </span>
                       ))}
                     </div>

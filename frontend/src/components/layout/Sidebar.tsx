@@ -12,6 +12,7 @@ import {
   UserPlus,
   ChevronLeft,
   ChevronDown,
+  Route,
   type LucideIcon,
 } from 'lucide-react'
 import { NectarLogo } from '@/components/brand/NectarLogo'
@@ -34,6 +35,7 @@ const navItems: { to: string; label: string; icon: LucideIcon }[] = [
 
 const systemItems: { to: string; label: string; icon: LucideIcon; minRole?: string }[] = [
   { to: '/audit', label: 'Audit Log', icon: ScrollText, minRole: 'Manager' },
+  { to: '/dept-defaults', label: 'Dept Routing', icon: Route, minRole: 'Admin' },
   { to: '/access-requests', label: 'Access Requests', icon: UserPlus, minRole: 'Admin' },
   { to: '/admin', label: 'Admin', icon: Settings, minRole: 'Admin' },
 ]

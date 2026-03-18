@@ -14,19 +14,12 @@ import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { adminService, type AdminRole, type AdminUser } from '@/services/admin.service'
 import { onboardingService } from '@/services/onboarding.service'
 import { workflowDepartments } from '@/config/workflowBlueprints'
 import { cn } from '@/lib/utils'
 
-const DEPARTMENTS = workflowDepartments.filter((department) => department !== 'All Departments')
+const DEPARTMENTS = workflowDepartments.filter((d) => d !== 'All Departments')
 
 const roleConfig: Record<
   string,
@@ -254,10 +247,6 @@ export default function AdminPage() {
   const usersQuery = useQuery({ queryKey: ['admin-users'], queryFn: adminService.getUsers })
   const rolesQuery = useQuery({ queryKey: ['roles'], queryFn: adminService.getRoles })
   const pendingQuery = useQuery({ queryKey: ['pending-onboarding'], queryFn: onboardingService.getPending })
-  const defaultsQuery = useQuery({
-    queryKey: ['department-defaults'],
-    queryFn: adminService.getDepartmentDefaults,
-  })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: Partial<Pick<AdminUser, 'name' | 'isActive'>> }) =>
@@ -265,34 +254,17 @@ export default function AdminPage() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
   })
 
-  const defaultMutation = useMutation({
-    mutationFn: ({ department, userId }: { department: string; userId: string }) =>
-      adminService.setDepartmentDefault(department, userId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['department-defaults'] })
-      void queryClient.invalidateQueries({ queryKey: ['user-directory'] })
-    },
-  })
-
   const users = usersQuery.data ?? []
   const allRoles = rolesQuery.data ?? []
-  const defaultAssignees = defaultsQuery.data ?? []
   const pendingCount = (pendingQuery.data ?? []).length
   const activeCount = users.filter((user) => user.isActive).length
   const inactiveCount = users.length - activeCount
-
-  const usersByDepartment = DEPARTMENTS.reduce<Record<string, AdminUser[]>>((accumulator, department) => {
-    accumulator[department] = users.filter((user) => user.department === department && user.isActive)
-    return accumulator
-  }, {})
-
-  const defaultByDepartment = new Map(defaultAssignees.map((entry) => [entry.department, entry]))
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold text-foreground">Admin</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Manage users, roles, system access, and request routing defaults.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Manage users, roles, and system access.</p>
       </div>
 
       {pendingCount > 0 && (
@@ -321,55 +293,23 @@ export default function AdminPage() {
         <StatPill icon={UserX} label="Inactive" value={inactiveCount} colorClass="bg-slate-100 text-slate-600" />
       </div>
 
-      <div className="rounded-xl border border-border bg-card shadow-sm shadow-black/[0.03]">
-        <div className="border-b border-border px-5 py-4">
-          <div className="flex items-center gap-2">
-            <Route size={15} className="text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">Department Default Assignees</h3>
+      <Link
+        to="/dept-defaults"
+        className="flex items-center justify-between rounded-xl border border-border bg-card px-5 py-4 no-underline shadow-sm shadow-black/[0.03] transition-colors hover:bg-muted/40"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Route size={15} />
           </div>
-          <p className="mt-1 text-[12px] text-muted-foreground">
-            New requests automatically route to these users when no owner is chosen at creation.
-          </p>
+          <div>
+            <p className="text-[13px] font-semibold text-foreground">Department Routing Defaults</p>
+            <p className="text-[12px] text-muted-foreground">
+              Configure default assignees for each department
+            </p>
+          </div>
         </div>
-        <div className="divide-y divide-border">
-          {DEPARTMENTS.map((department) => {
-            const options = usersByDepartment[department] ?? []
-            const currentDefault = defaultByDepartment.get(department)
-            const isUpdating =
-              defaultMutation.isPending && defaultMutation.variables?.department === department
-
-            return (
-              <div key={department} className="grid gap-3 px-5 py-4 md:grid-cols-[220px_minmax(0,1fr)] md:items-center">
-                <div>
-                  <p className="text-[13px] font-semibold text-foreground">{department}</p>
-                  <p className="mt-0.5 text-[12px] text-muted-foreground">
-                    {currentDefault?.user?.name ?? 'No default assignee set'}
-                  </p>
-                </div>
-                <Select
-                  value={currentDefault?.userId ?? 'unassigned'}
-                  onValueChange={(value) => {
-                    if (value === 'unassigned') return
-                    defaultMutation.mutate({ department, userId: value })
-                  }}
-                  disabled={options.length === 0 || isUpdating}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={options.length > 0 ? 'Select default assignee' : 'No active users in department'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {options.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+        <ArrowRight size={15} className="shrink-0 text-muted-foreground" />
+      </Link>
 
       {usersQuery.isLoading ? (
         <div className="flex min-h-[260px] items-center justify-center">
