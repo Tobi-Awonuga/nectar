@@ -1,17 +1,53 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Users, UserX, UserCheck, Shield, UserPlus, Check, X } from 'lucide-react'
+import { Users, UserX, UserCheck, Shield, UserPlus, Check, X, ChevronDown } from 'lucide-react'
+import { useRef, useState } from 'react'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Button } from '@/components/ui/button'
 import { adminService, type AdminUser, type AdminRole } from '@/services/admin.service'
-import { onboardingService, type PendingOnboardingUser } from '@/services/onboarding.service'
+import { onboardingService } from '@/services/onboarding.service'
 import { cn } from '@/lib/utils'
 
+// ── Role styling ─────────────────────────────────────────────────────────────
+
+const roleConfig: Record<string, {
+  label: string
+  description: string
+  pill: string
+  permissions: string[]
+}> = {
+  Admin: {
+    label: 'Admin',
+    description: 'Full platform access',
+    pill: 'bg-violet-100 text-violet-700 border-violet-200',
+    permissions: ['All permissions'],
+  },
+  Manager: {
+    label: 'Manager',
+    description: 'Approve requests, manage workflows',
+    pill: 'bg-blue-100 text-blue-700 border-blue-200',
+    permissions: ['Approve & reject', 'Manage workflows', 'Assign tasks', 'View audit log'],
+  },
+  Employee: {
+    label: 'Employee',
+    description: 'Create and view own requests',
+    pill: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    permissions: ['Submit requests', 'View workflows', 'View own tasks'],
+  },
+}
+
+function getRoleConfig(name: string) {
+  return roleConfig[name] ?? {
+    label: name,
+    description: '',
+    pill: 'bg-muted text-muted-foreground border-border',
+    permissions: [],
+  }
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function UserInitials({ name }: { name: string }) {
@@ -51,79 +87,117 @@ function StatPill({
   )
 }
 
-function UserRoleCell({ userId, roles }: { userId: string; roles: AdminRole[] }) {
+function UserRoleCell({ userId, allRoles }: { userId: string; allRoles: AdminRole[] }) {
   const queryClient = useQueryClient()
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
   const userRolesQuery = useQuery({
     queryKey: ['user-roles', userId],
     queryFn: () => adminService.getUserRoles(userId),
   })
+
   const assignMutation = useMutation({
     mutationFn: (roleId: string) => adminService.assignRole(userId, roleId),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['user-roles', userId] }) },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['user-roles', userId] })
+      setDropdownOpen(false)
+    },
   })
+
   const removeMutation = useMutation({
     mutationFn: (roleId: string) => adminService.removeRole(userId, roleId),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['user-roles', userId] }) },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['user-roles', userId] }),
   })
 
   const userRoles = userRolesQuery.data ?? []
-  const unassignedRoles = roles.filter((r) => !userRoles.some((ur) => ur.id === r.id))
+  const unassignedRoles = allRoles.filter((r) => !userRoles.some((ur) => ur.id === r.id))
 
   return (
-    <div className="flex flex-wrap items-center gap-1">
-      {userRoles.map((role) => (
-        <span key={role.id} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-          {role.name}
-          <button
-            onClick={() => removeMutation.mutate(role.id)}
-            className="ml-0.5 text-primary/60 hover:text-destructive"
-            disabled={removeMutation.isPending}
+    <div className="flex flex-wrap items-center gap-1.5">
+      {/* Current role pills */}
+      {userRoles.map((role) => {
+        const cfg = getRoleConfig(role.name)
+        return (
+          <span
+            key={role.id}
+            className={cn(
+              'group inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold',
+              cfg.pill,
+            )}
           >
-            ×
-          </button>
-        </span>
-      ))}
+            {cfg.label}
+            <button
+              onClick={() => removeMutation.mutate(role.id)}
+              disabled={removeMutation.isPending}
+              className="opacity-40 transition-opacity hover:opacity-100"
+              title={`Remove ${role.name} role`}
+            >
+              <X size={10} />
+            </button>
+          </span>
+        )
+      })}
+
+      {/* Add role dropdown */}
       {unassignedRoles.length > 0 && (
-        <select
-          className="rounded border border-border bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground"
-          value=""
-          onChange={(e) => { if (e.target.value) assignMutation.mutate(e.target.value) }}
-          disabled={assignMutation.isPending}
-        >
-          <option value="">+ Role</option>
-          {unassignedRoles.map((r) => (
-            <option key={r.id} value={r.id}>{r.name}</option>
-          ))}
-        </select>
+        <div ref={dropdownRef} className="relative">
+          <button
+            onClick={() => setDropdownOpen((p) => !p)}
+            className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+          >
+            Add role
+            <ChevronDown size={10} className={cn('transition-transform', dropdownOpen && 'rotate-180')} />
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute left-0 top-full z-20 mt-1 w-56 rounded-xl border border-border bg-popover shadow-lg shadow-black/5">
+              {unassignedRoles.map((role) => {
+                const cfg = getRoleConfig(role.name)
+                return (
+                  <button
+                    key={role.id}
+                    onClick={() => assignMutation.mutate(role.id)}
+                    disabled={assignMutation.isPending}
+                    className="flex w-full flex-col px-3 py-2.5 text-left transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-accent"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={cn('rounded-md border px-1.5 py-0.5 text-[10px] font-semibold', cfg.pill)}>
+                        {cfg.label}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">{cfg.description}</p>
+                    {cfg.permissions.length > 0 && (
+                      <p className="mt-0.5 text-[10px] text-muted-foreground/60">
+                        {cfg.permissions.join(' · ')}
+                      </p>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
       )}
+
+      {userRolesQuery.isLoading && <LoadingSpinner className="h-3 w-3" />}
     </div>
   )
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function AdminPage() {
   const queryClient = useQueryClient()
 
-  const usersQuery = useQuery({
-    queryKey: ['admin-users'],
-    queryFn: adminService.getUsers,
-  })
-
-  const rolesQuery = useQuery({
-    queryKey: ['roles'],
-    queryFn: adminService.getRoles,
-  })
+  const usersQuery = useQuery({ queryKey: ['admin-users'], queryFn: adminService.getUsers })
+  const rolesQuery = useQuery({ queryKey: ['roles'], queryFn: adminService.getRoles })
+  const pendingQuery = useQuery({ queryKey: ['pending-onboarding'], queryFn: onboardingService.getPending })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: Partial<Pick<AdminUser, 'name' | 'isActive'>> }) =>
       adminService.updateUser(id, patch),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-    },
-  })
-
-  const pendingQuery = useQuery({
-    queryKey: ['pending-onboarding'],
-    queryFn: onboardingService.getPending,
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
   })
 
   const approveMutation = useMutation({
@@ -136,24 +210,21 @@ export default function AdminPage() {
 
   const rejectMutation = useMutation({
     mutationFn: (userId: string) => onboardingService.reject(userId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['pending-onboarding'] })
-    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['pending-onboarding'] }),
   })
 
-  const pendingUsers = pendingQuery.data ?? []
-
   const users = usersQuery.data ?? []
-  const roles = rolesQuery.data ?? []
+  const allRoles = rolesQuery.data ?? []
+  const pendingUsers = pendingQuery.data ?? []
   const activeCount = users.filter((u) => u.isActive).length
   const inactiveCount = users.length - activeCount
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
+      {/* Header */}
       <div>
         <h2 className="text-2xl font-semibold text-foreground">Admin</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Manage users and system access.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Manage users, roles, and system access.</p>
       </div>
 
       {/* Pending access requests */}
@@ -183,9 +254,7 @@ export default function AdminPage() {
                   </div>
                   <div className="flex shrink-0 gap-2">
                     <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isApproving || isRejecting}
+                      size="sm" variant="outline" disabled={isApproving || isRejecting}
                       className="h-7 gap-1.5 px-3 text-xs border-destructive/30 text-destructive hover:bg-destructive/5"
                       onClick={() => rejectMutation.mutate(item.user.id)}
                     >
@@ -193,8 +262,7 @@ export default function AdminPage() {
                       Reject
                     </Button>
                     <Button
-                      size="sm"
-                      disabled={isApproving || isRejecting}
+                      size="sm" disabled={isApproving || isRejecting}
                       className="h-7 gap-1.5 px-3 text-xs"
                       onClick={() => approveMutation.mutate(item.user.id)}
                     >
@@ -209,29 +277,35 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Stats row */}
+      {/* Role legend */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatPill
-          icon={Users}
-          label="Total Users"
-          value={users.length}
-          colorClass="bg-primary/10 text-primary"
-        />
-        <StatPill
-          icon={UserCheck}
-          label="Active"
-          value={activeCount}
-          colorClass="bg-green-100 text-green-700"
-        />
-        <StatPill
-          icon={UserX}
-          label="Inactive"
-          value={inactiveCount}
-          colorClass="bg-slate-100 text-slate-600"
-        />
+        {Object.values(roleConfig).map((cfg) => (
+          <div key={cfg.label} className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm shadow-black/[0.03]">
+            <div className="flex items-center gap-2">
+              <span className={cn('rounded-md border px-2 py-0.5 text-[11px] font-semibold', cfg.pill)}>
+                {cfg.label}
+              </span>
+            </div>
+            <p className="mt-1.5 text-[12px] text-muted-foreground">{cfg.description}</p>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {cfg.permissions.map((p) => (
+                <span key={p} className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  {p}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Content */}
+      {/* Stats */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatPill icon={Users} label="Total Users" value={users.length} colorClass="bg-primary/10 text-primary" />
+        <StatPill icon={UserCheck} label="Active" value={activeCount} colorClass="bg-green-100 text-green-700" />
+        <StatPill icon={UserX} label="Inactive" value={inactiveCount} colorClass="bg-slate-100 text-slate-600" />
+      </div>
+
+      {/* User table */}
       {usersQuery.isLoading ? (
         <div className="flex min-h-[260px] items-center justify-center">
           <LoadingSpinner className="h-7 w-7" />
@@ -239,138 +313,85 @@ export default function AdminPage() {
       ) : usersQuery.isError ? (
         <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-6 py-8 text-center">
           <p className="text-sm font-medium text-destructive">Unable to load users</p>
-          <p className="mt-1 text-xs text-muted-foreground">Check your connection and try again.</p>
-          <Button variant="outline" size="sm" className="mt-4" onClick={() => void usersQuery.refetch()}>
-            Retry
-          </Button>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => void usersQuery.refetch()}>Retry</Button>
         </div>
       ) : users.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card px-6 py-16 text-center shadow-sm shadow-black/[0.03]">
+        <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
           <Users size={32} className="mx-auto text-muted-foreground/30" />
-          <p className="mt-3 text-sm font-semibold text-foreground">No users found</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Users will appear here once accounts are created.
-          </p>
+          <p className="mt-3 text-sm font-semibold text-foreground">No users yet</p>
         </div>
       ) : (
         <div className="rounded-xl border border-border bg-card shadow-sm shadow-black/[0.03] overflow-hidden">
           {/* Table header */}
           <div className="flex items-center gap-4 border-b border-border bg-muted/30 px-5 py-3">
             <div className="flex-1 min-w-0">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                User
-              </span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">User</span>
             </div>
-            <div className="hidden w-24 sm:block">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Status
-              </span>
+            <div className="hidden w-20 sm:block">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</span>
             </div>
-            <div className="hidden w-40 md:block">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Role
-              </span>
+            <div className="hidden w-52 md:block">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Role</span>
             </div>
-            <div className="hidden w-28 md:block">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Joined
-              </span>
+            <div className="hidden w-28 lg:block">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Joined</span>
             </div>
             <div className="w-28 text-right">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Action
-              </span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Action</span>
             </div>
           </div>
 
-          {/* User rows */}
           <div className="divide-y divide-border">
             {users.map((user) => {
-              const isMutating =
-                updateMutation.isPending && updateMutation.variables?.id === user.id
-
+              const isMutating = updateMutation.isPending && updateMutation.variables?.id === user.id
               return (
-                <div
-                  key={user.id}
-                  className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/20"
-                >
-                  {/* Avatar + name/email */}
+                <div key={user.id} className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/20">
+                  {/* Avatar + info */}
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <UserInitials name={user.name} />
                     <div className="min-w-0">
-                      <p className="truncate text-[13px] font-semibold text-foreground">
-                        {user.name}
-                      </p>
+                      <p className="truncate text-[13px] font-semibold text-foreground">{user.name}</p>
                       <p className="truncate text-[12px] text-muted-foreground">{user.email}</p>
                     </div>
                   </div>
 
                   {/* Status */}
-                  <div className="hidden w-24 sm:block">
-                    <span
-                      className={cn(
-                        'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
-                        user.isActive
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-slate-100 text-slate-600'
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'h-1.5 w-1.5 rounded-full',
-                          user.isActive ? 'bg-green-500' : 'bg-slate-400'
-                        )}
-                      />
+                  <div className="hidden w-20 sm:block">
+                    <span className={cn(
+                      'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                      user.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
+                    )}>
+                      <span className={cn('h-1.5 w-1.5 rounded-full', user.isActive ? 'bg-green-500' : 'bg-slate-400')} />
                       {user.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </div>
 
-                  {/* Role */}
-                  <div className="hidden w-40 md:block">
-                    <UserRoleCell userId={user.id} roles={roles} />
+                  {/* Roles */}
+                  <div className="hidden w-52 md:block">
+                    <UserRoleCell userId={user.id} allRoles={allRoles} />
                   </div>
 
-                  {/* Joined date */}
-                  <div className="hidden w-28 md:block">
-                    <span className="text-[12px] text-muted-foreground">
-                      {formatDate(user.createdAt)}
-                    </span>
+                  {/* Joined */}
+                  <div className="hidden w-28 lg:block">
+                    <span className="text-[12px] text-muted-foreground">{formatDate(user.createdAt)}</span>
                   </div>
 
-                  {/* Action button */}
+                  {/* Action */}
                   <div className="w-28 text-right">
                     {user.isActive ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={isMutating}
+                      <Button variant="outline" size="sm" disabled={isMutating}
                         className="h-7 px-3 text-xs text-destructive hover:border-destructive/40 hover:bg-destructive/5 hover:text-destructive"
-                        onClick={() =>
-                          updateMutation.mutate({ id: user.id, patch: { isActive: false } })
-                        }
+                        onClick={() => updateMutation.mutate({ id: user.id, patch: { isActive: false } })}
                       >
-                        {isMutating ? (
-                          <LoadingSpinner className="h-3 w-3" />
-                        ) : (
-                          <UserX size={12} />
-                        )}
+                        {isMutating ? <LoadingSpinner className="h-3 w-3" /> : <UserX size={12} />}
                         Deactivate
                       </Button>
                     ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={isMutating}
+                      <Button variant="outline" size="sm" disabled={isMutating}
                         className="h-7 px-3 text-xs"
-                        onClick={() =>
-                          updateMutation.mutate({ id: user.id, patch: { isActive: true } })
-                        }
+                        onClick={() => updateMutation.mutate({ id: user.id, patch: { isActive: true } })}
                       >
-                        {isMutating ? (
-                          <LoadingSpinner className="h-3 w-3" />
-                        ) : (
-                          <UserCheck size={12} />
-                        )}
+                        {isMutating ? <LoadingSpinner className="h-3 w-3" /> : <UserCheck size={12} />}
                         Activate
                       </Button>
                     )}
@@ -380,13 +401,10 @@ export default function AdminPage() {
             })}
           </div>
 
-          {/* Footer */}
           <div className="border-t border-border bg-muted/20 px-5 py-3">
             <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
               <Shield size={12} />
-              <span>
-                {users.length} {users.length === 1 ? 'user' : 'users'} total · {activeCount} active
-              </span>
+              <span>{users.length} {users.length === 1 ? 'user' : 'users'} · {activeCount} active</span>
             </div>
           </div>
         </div>
