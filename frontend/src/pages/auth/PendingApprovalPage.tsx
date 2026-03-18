@@ -1,10 +1,17 @@
+import { useEffect } from 'react'
 import { Clock, LogOut, CheckCircle2 } from 'lucide-react'
 import { useAuthContext } from '../../context/AuthContext'
 import { NectarLogo } from '@/components/brand/NectarLogo'
 import { Button } from '@/components/ui/button'
 
 export default function PendingApprovalPage() {
-  const { user, logout } = useAuthContext()
+  const { user, logout, refreshUser } = useAuthContext()
+
+  // Poll every 5 seconds — when approved the AuthGuard redirects automatically
+  useEffect(() => {
+    const interval = setInterval(() => void refreshUser(), 5000)
+    return () => clearInterval(interval)
+  }, [refreshUser])
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-background px-4">

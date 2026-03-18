@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useAuthContext } from '../../context/AuthContext'
 import { onboardingService } from '../../services/onboarding.service'
 import { NectarLogo } from '@/components/brand/NectarLogo'
@@ -24,6 +25,13 @@ const DEPARTMENTS = [
 
 export default function OnboardingPage() {
   const { user, refreshUser } = useAuthContext()
+
+  if (user?.onboardingStatus === 'pending_approval' || user?.onboardingStatus === 'rejected') {
+    return <Navigate to="/pending-approval" replace />
+  }
+  if (user?.onboardingStatus === 'approved') {
+    return <Navigate to="/" replace />
+  }
 
   // Pre-fill name from SSO
   const nameParts = (user?.name ?? '').trim().split(' ')
