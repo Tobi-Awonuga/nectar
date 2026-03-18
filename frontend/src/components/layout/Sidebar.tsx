@@ -127,23 +127,30 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   )
 }
 
-function NectarLogo({ size = 30 }: { size?: number }) {
+function NectarLogo({ size = 28 }: { size?: number }) {
+  const r = Math.round(size * 0.27) // corner radius scales with size
   return (
-    <svg width={size} height={size} viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Hexagon */}
-      <path
-        d="M15 2L26.26 8.5V21.5L15 28L3.74 21.5V8.5L15 2Z"
-        fill="hsl(var(--sidebar-accent))"
-      />
-      {/* N lettermark */}
-      <path
-        d="M10 21V9M10 9L20 21M20 21V9"
-        stroke="white"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <div
+      style={{ width: size, height: size, borderRadius: r }}
+      className="shrink-0 flex items-center justify-center bg-sidebar-accent shadow-sm shadow-black/30"
+    >
+      <svg
+        width={Math.round(size * 0.52)}
+        height={Math.round(size * 0.6)}
+        viewBox="0 0 14 16"
+        fill="none"
+        aria-hidden="true"
+      >
+        {/* Vector N lettermark — left bar, diagonal, right bar */}
+        <path
+          d="M1.5 14.5V1.5L12.5 14.5V1.5"
+          stroke="white"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
   )
 }
 
