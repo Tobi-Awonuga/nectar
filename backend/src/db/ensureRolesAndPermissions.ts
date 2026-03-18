@@ -105,13 +105,15 @@ export async function ensureAtLeastOneAdmin(): Promise<void> {
   const [adminRole] = await db.select().from(roles).where(eq(roles.name, 'Admin')).limit(1)
   if (!adminRole) return
 
-  const [existingAdmin] = await db
-    .select()
+  // Only count real users (not system@nectar.local) as admins
+  const realAdmins = await db
+    .select({ userId: userRoles.userId })
     .from(userRoles)
-    .where(eq(userRoles.roleId, adminRole.id))
+    .innerJoin(users, eq(users.id, userRoles.userId))
+    .where(and(eq(userRoles.roleId, adminRole.id), ne(users.email, 'system@nectar.local')))
     .limit(1)
 
-  if (existingAdmin) return // at least one admin already exists
+  if (realAdmins.length > 0) return // a real admin already exists
 
   // No admin — promote the earliest real user
   const [firstUser] = await db
