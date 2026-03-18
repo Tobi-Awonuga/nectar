@@ -97,6 +97,12 @@ const reviewTransitions: WorkflowTransitionDefinition[] = [
 
 const systemWorkflowCatalog: WorkflowDefinition[] = [
   {
+    name: 'Open Request',
+    description: 'General-purpose request for issues, ideas, or actions that do not fit a specific workflow template.',
+    states: reviewStates,
+    transitions: reviewTransitions,
+  },
+  {
     name: 'Shipping / Label Incident',
     description: 'Capture labeling, shipping, and traceability issues before they become dispatch or compliance risks.',
     states: reviewStates,

@@ -31,6 +31,8 @@ export const workflowsService = {
     ownerUserId?: string
     watchingDepartments?: string[]
     metadata?: Record<string, string>
+    visibility?: 'public' | 'private'
+    privateRecipientId?: string
   }): Promise<WorkflowInstance> {
     const { data } = await apiClient.post<{ data: WorkflowInstance }>('/tasks', payload)
     return data.data

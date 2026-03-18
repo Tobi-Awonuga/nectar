@@ -48,6 +48,22 @@ const employeeChangeTypes = ['Department change', 'Supervisor change', 'Name upd
 
 export const workflowCatalog: WorkflowCatalogItem[] = [
   {
+    name: 'Open Request',
+    slug: 'open-request',
+    category: 'Operations',
+    departments: ['All Departments'],
+    summary: 'General-purpose request for issues, ideas, or actions that do not fit a specific workflow template.',
+    impact: 'Ensures nothing falls through the cracks — any request can be tracked, owned, and resolved.',
+    outcomes: [
+      'Request is captured and gets an owner',
+      'Progress is visible until the issue is closed',
+    ],
+    guidance: [
+      'Use this when no other template fits. Describe the issue clearly so the right person can act on it.',
+    ],
+    fields: [],
+  },
+  {
     name: 'Shipping / Label Incident',
     slug: 'shipping-label-incident',
     category: 'Operations Control',
