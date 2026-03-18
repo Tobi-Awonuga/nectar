@@ -21,8 +21,8 @@ export async function getById(id: string): Promise<User | null> {
   return user ?? null
 }
 
-export async function update(id: string, data: Partial<Pick<User, 'name' | 'email' | 'isActive' | 'avatarUrl'>>): Promise<User | null> {
-  const updateData: Partial<Pick<User, 'name' | 'email' | 'isActive' | 'avatarUrl' | 'updatedAt'>> = {
+export async function update(id: string, data: Partial<Pick<User, 'name' | 'email' | 'isActive' | 'avatarUrl' | 'department'>>): Promise<User | null> {
+  const updateData: Partial<Pick<User, 'name' | 'email' | 'isActive' | 'avatarUrl' | 'department' | 'updatedAt'>> = {
     updatedAt: new Date(),
   }
 
@@ -30,6 +30,8 @@ export async function update(id: string, data: Partial<Pick<User, 'name' | 'emai
   if (typeof data.email === 'string') updateData.email = data.email.trim().toLowerCase()
   if (typeof data.isActive === 'boolean') updateData.isActive = data.isActive
   if (typeof data.avatarUrl !== 'undefined') updateData.avatarUrl = data.avatarUrl
+  if (typeof data.department === 'string') updateData.department = data.department
+  if (data.department === null) updateData.department = null
 
   const [updated] = await db
     .update(users)
