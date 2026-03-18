@@ -32,7 +32,34 @@ export async function submitOnboarding(
     .onConflictDoNothing()
 }
 
-export async function getPendingUsers(): Promise<PendingOnboardingUser[]> {
+export async function getPendingUsers(reviewerId: string): Promise<PendingOnboardingUser[]> {
+  // Admins see all pending requests; managers see only requests for their department
+  const [adminRole] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, 'Admin')).limit(1)
+
+  let isAdmin = false
+  if (adminRole) {
+    const [assignment] = await db
+      .select()
+      .from(userRoles)
+      .where(and(eq(userRoles.userId, reviewerId), eq(userRoles.roleId, adminRole.id)))
+      .limit(1)
+    isAdmin = !!assignment
+  }
+
+  let deptFilter: string | null = null
+  if (!isAdmin) {
+    const [reviewer] = await db
+      .select({ department: users.department })
+      .from(users)
+      .where(eq(users.id, reviewerId))
+      .limit(1)
+    deptFilter = reviewer?.department ?? null
+  }
+
+  const whereClause = deptFilter
+    ? and(eq(onboardingRequests.status, 'pending'), eq(users.department, deptFilter))
+    : eq(onboardingRequests.status, 'pending')
+
   const rows = await db
     .select({
       user: users,
@@ -41,7 +68,7 @@ export async function getPendingUsers(): Promise<PendingOnboardingUser[]> {
     })
     .from(onboardingRequests)
     .innerJoin(users, eq(users.id, onboardingRequests.userId))
-    .where(eq(onboardingRequests.status, 'pending'))
+    .where(whereClause)
     .orderBy(desc(onboardingRequests.createdAt))
 
   return rows.map((r) => ({

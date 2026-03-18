@@ -40,6 +40,7 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
     'approvals:action',
     'audit:read',
     'users:read',
+    'users:write',
   ],
   Employee: ['workflow:read', 'workflow:create', 'task:read', 'task:update'],
 }

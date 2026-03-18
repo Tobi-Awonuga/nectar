@@ -23,7 +23,8 @@ export async function submitOnboarding(req: Request, res: Response, next: NextFu
 
 export async function getPendingOnboarding(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const result = await onboardingService.getPendingUsers()
+    const reviewerId = req.user?.id ?? ''
+    const result = await onboardingService.getPendingUsers(reviewerId)
     res.status(200).json({ data: result })
   } catch (err) {
     next(err)
