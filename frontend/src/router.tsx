@@ -12,6 +12,7 @@ import ApprovalsPage from './pages/approvals/ApprovalsPage'
 import AuditLogPage from './pages/audit/AuditLogPage'
 import AdminPage from './pages/admin/AdminPage'
 import QueuePage from './pages/queue/QueuePage'
+import AccessRequestsPage from './pages/access-requests/AccessRequestsPage'
 import InboxPage from './pages/inbox/InboxPage'
 
 export const router = createBrowserRouter([
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
           { path: '/audit', element: <AuditLogPage /> },
           { path: '/admin', element: <AdminPage /> },
           { path: '/queue', element: <QueuePage /> },
+          { path: '/access-requests', element: <AccessRequestsPage /> },
           { path: '/inbox', element: <InboxPage /> },
         ],
       },

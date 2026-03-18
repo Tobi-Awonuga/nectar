@@ -9,6 +9,7 @@ import {
   Settings,
   Inbox,
   Layers,
+  UserPlus,
   ChevronLeft,
   ChevronDown,
   type LucideIcon,
@@ -31,6 +32,7 @@ const navItems: { to: string; label: string; icon: LucideIcon }[] = [
 
 const systemItems: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/audit', label: 'Audit Log', icon: ScrollText },
+  { to: '/access-requests', label: 'Access Requests', icon: UserPlus },
   { to: '/admin', label: 'Admin', icon: Settings },
 ]
 
