@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Clock, LogOut, CheckCircle2 } from 'lucide-react'
 import { useAuthContext } from '../../context/AuthContext'
 import { NectarLogo } from '@/components/brand/NectarLogo'
@@ -6,12 +7,20 @@ import { Button } from '@/components/ui/button'
 
 export default function PendingApprovalPage() {
   const { user, logout, refreshUser } = useAuthContext()
+  const navigate = useNavigate()
 
-  // Poll every 5 seconds — when approved the AuthGuard redirects automatically
+  // Poll every 5 seconds to check if the admin has approved the request
   useEffect(() => {
     const interval = setInterval(() => void refreshUser(), 5000)
     return () => clearInterval(interval)
   }, [refreshUser])
+
+  // Redirect as soon as the user's status changes to approved
+  useEffect(() => {
+    if (user?.onboardingStatus === 'approved') {
+      navigate('/', { replace: true })
+    }
+  }, [user?.onboardingStatus, navigate])
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-background px-4">

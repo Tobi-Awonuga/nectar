@@ -15,12 +15,17 @@ const queryClient = new QueryClient({
   },
 })
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <MsalProvider instance={msalInstance}>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
-    </MsalProvider>
-  </React.StrictMode>,
-)
+// Ensure MSAL is fully initialised before rendering the React tree.
+// Without this the app renders while MSAL is still bootstrapping, which
+// blocks the auth flow and causes a long blank loading screen.
+msalInstance.initialize().then(() => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <MsalProvider instance={msalInstance}>
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      </MsalProvider>
+    </React.StrictMode>,
+  )
+})

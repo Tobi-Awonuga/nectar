@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { useMsal } from '@azure/msal-react'
 import { loginRequest } from '../config/msal'
 import { apiClient } from '../services/api.client'
@@ -52,14 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.data.user)
   }
 
-  async function refreshUser() {
+  const refreshUser = useCallback(async () => {
     try {
       const res = await apiClient.get<{ data: User }>('/auth/me')
       setUser(res.data.data)
     } catch {
       // silent
     }
-  }
+  }, [])
 
   async function logout() {
     await apiClient.post('/auth/logout')
