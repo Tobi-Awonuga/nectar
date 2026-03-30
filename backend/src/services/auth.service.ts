@@ -148,6 +148,52 @@ export async function login(idToken: string): Promise<LoginResult> {
   }
 }
 
+export async function devLogin(role: string = 'Admin'): Promise<LoginResult> {
+  const devAzureOid = `dev-oid-${role.toLowerCase()}`
+  const devEmail = `dev-${role.toLowerCase()}@localhost`
+  const devName = `Dev ${role}`
+
+  const existing = await db.select().from(users).where(eq(users.azureOid, devAzureOid)).limit(1)
+
+  let user: User
+  if (existing.length > 0) {
+    const [updated] = await db
+      .update(users)
+      .set({ isActive: true, onboardingStatus: 'complete', updatedAt: new Date() })
+      .where(eq(users.id, existing[0].id))
+      .returning()
+    user = updated
+  } else {
+    const [created] = await db
+      .insert(users)
+      .values({ email: devEmail, name: devName, azureOid: devAzureOid, isActive: true, onboardingStatus: 'complete' })
+      .returning()
+    user = created
+  }
+
+  const [targetRole] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, role)).limit(1)
+  if (targetRole) {
+    await db.insert(userRoles).values({ userId: user.id, roleId: targetRole.id }).onConflictDoNothing()
+  }
+
+  const roleNames = await getUserRoleNames(user.id)
+  const token = issueNectarToken(user, roleNames)
+
+  return {
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+      isActive: user.isActive,
+      onboardingStatus: user.onboardingStatus,
+      department: user.department ?? null,
+      roles: roleNames,
+    },
+  }
+}
+
 export async function getMe(userId: string): Promise<(User & { roles: string[] }) | null> {
   const result = await db
     .select()

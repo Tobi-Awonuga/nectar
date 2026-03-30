@@ -9,6 +9,7 @@ interface AuthContextValue {
   isLoading: boolean
   isAuthenticated: boolean
   login: () => Promise<void>
+  devLogin: (role: string) => Promise<void>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -52,6 +53,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.data.user)
   }
 
+  async function devLogin(role: string) {
+    const { data } = await apiClient.post<{ data: { token: string; user: User } }>(
+      '/auth/dev-login',
+      { role },
+    )
+    localStorage.setItem('nectar_token', data.data.token)
+    setUser(data.data.user)
+  }
+
   const refreshUser = useCallback(async () => {
     try {
       const res = await apiClient.get<{ data: User }>('/auth/me')
@@ -69,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, devLogin, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

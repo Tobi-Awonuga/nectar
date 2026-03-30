@@ -4,7 +4,7 @@ import { NectarLogo } from '@/components/brand/NectarLogo'
 import { useAuthContext } from '../../context/AuthContext'
 
 export default function LoginPage() {
-  const { login, isAuthenticated } = useAuthContext()
+  const { login, devLogin, isAuthenticated } = useAuthContext()
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -22,6 +22,19 @@ export default function LoginPage() {
       navigate('/', { replace: true })
     } catch {
       setError('Sign in failed. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  async function handleDevLogin(role: string) {
+    setIsLoading(true)
+    setError(null)
+    try {
+      await devLogin(role)
+      navigate('/', { replace: true })
+    } catch {
+      setError('Dev login failed.')
     } finally {
       setIsLoading(false)
     }
@@ -119,6 +132,26 @@ export default function LoginPage() {
           <p className="text-center text-[12px] text-muted-foreground/60">
             Access is restricted to CT Bakery employees.
           </p>
+
+          {import.meta.env.DEV && (
+            <div className="space-y-2 rounded-xl border border-dashed border-border bg-muted/40 p-4">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Dev login
+              </p>
+              <div className="flex gap-2">
+                {['Admin', 'Manager', 'Employee'].map((role) => (
+                  <button
+                    key={role}
+                    onClick={() => handleDevLogin(role)}
+                    disabled={isLoading}
+                    className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-[12px] font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+                  >
+                    {role}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

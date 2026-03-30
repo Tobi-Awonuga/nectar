@@ -12,8 +12,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
-  AZURE_CLIENT_ID: z.string().min(1, 'AZURE_CLIENT_ID is required'),
-  AZURE_TENANT_ID: z.string().min(1, 'AZURE_TENANT_ID is required'),
+  AZURE_CLIENT_ID: z.string().default(''),
+  AZURE_TENANT_ID: z.string().default(''),
   AZURE_CLIENT_SECRET: z.string().optional(),
 })
 

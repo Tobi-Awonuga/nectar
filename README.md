@@ -6,7 +6,11 @@ Internal workflow and operations platform.
 
 ```bash
 cp .env.example .env
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+docker compose up --build
 ```
 
-Access via: http://nectar.ct.applications
+Access via: http://localhost
+- Frontend: http://localhost
+- Backend API: http://localhost/api
+- Direct API: http://localhost:3000
+- Database: localhost:5432
